@@ -1,85 +1,152 @@
-#include "chat.h"
+#include "server.h"
 #include "common.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <string.h>
+#include <strings.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <time.h>
+
+int start_listening(int port){
+	struct addrinfo hints, *res;
+	int sock;
+
+	memset(&hints,0,sizeof hints);
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+
+	int result = 0;
+	char text[20];
+	snprintf(text,20,"%d",port);
+
+	if((result = getaddrinfo(NULL,text, &hints, &res)) != 0){
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
+		return -1;
+	}
+
+	sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+	if(socket < 0){
+		perror("Failed to obtain socket");
+		return -1;
+	}
+
+	int yes=1;
+	//char yes='1'; // Solaris people use this
+
+	// lose the pesky "Address already in use" error message
+	if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
+		perror("setsockopt");
+		return -1;
+	} 
+
+	if(bind(sock, res->ai_addr, res->ai_addrlen) == -1){
+		perror("Failed to bind");
+		return -1;
+	}
+
+	if(listen(sock,2) == -1){
+		perror("Failed to listen");
+		return -1;
+	}
+	freeaddrinfo(res);
+	return sock;
+}
 
 int run_server(int port){
-  struct message *msg= NULL;
+	struct message *msg= NULL;
+	struct timeval tv;
+	fd_set readfds;
+	fd_set master;
 
-  struct addrinfo hints, *res;
-  int sock;
+	int sock = start_listening(port);
+	int max_sock = sock;
 
-  memset(&hints,0,sizeof hints);
-  hints.ai_family = AF_INET;
-  hints.ai_socktype = SOCK_STREAM;
- 
-  int result = 0;
-  char text[20];
-  snprintf(text,20,"%d",port);
+	printf("Waiting for a connection on port %d\n",port);
 
-  if((result = getaddrinfo(NULL,text, &hints, &res)) != 0){
-    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
-    exit(EXIT_FAILURE);
-  }
+	FD_ZERO(&readfds);
+	FD_ZERO(&master);
+	FD_SET(sock, &master);
 
-  sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-  if(socket < 0){
-    perror("Failed to obtain socket");
-    exit(EXIT_FAILURE);
-  }
+	while(1){
+		tv.tv_sec = 2;
+		tv.tv_usec = 500000;
 
-  int yes=1;
-  //char yes='1'; // Solaris people use this
+		readfds = master;
 
-  // lose the pesky "Address already in use" error message
-  if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
-        perror("setsockopt");
-        return 1;
-  } 
+		// don't care about writefds and exceptfds:
+		select(max_sock+1, &readfds, NULL, NULL, &tv);
 
-  if(bind(sock, res->ai_addr, res->ai_addrlen) == -1){
-    perror("Failed to bind");
-    exit(EXIT_FAILURE);
-  }
+		if(tv.tv_sec == 0){ printf("Timeout\n"); continue; }
 
-  if(listen(sock,2) == -1){
-    perror("Failed to listen");
-    exit(EXIT_FAILURE);
-  }
+		for(int i = 0; i < max_sock+1; ++i){
+			if (FD_ISSET(i, &readfds)){
+				if(i == sock){
+					struct sockaddr_storage client_addr;
+					socklen_t addr_size = sizeof client_addr;
 
-  char ip[INET6_ADDRSTRLEN];
-  struct sockaddr_in * addr = (struct sockaddr_in*)res->ai_addr;
-  inet_ntop(res->ai_family, &addr->sin_addr, ip, sizeof ip);
-  printf("Waiting for a connection on %s port %d\n",ip,port);
-  freeaddrinfo(res);
+					int client = accept(sock, (struct sockaddr *)&client_addr, &addr_size);
+					if(client == -1){
+						perror("Failed to accept new client");
+						continue;
+					}
 
-  while(1){
-    struct sockaddr_storage client_addr;
-    socklen_t addr_size = sizeof client_addr;
+					printf("Client connected\n");
+					if(client > max_sock) max_sock = client;
+					FD_SET(client,&master);
+				}else{
+					handle_client(i);
+				}
+			}
+		}
+	}
+}
 
-    int client = accept(sock, (struct sockaddr *)&client_addr, &addr_size);
-    if(client == -1){
-      perror("Failed to accept new client");
-      exit(EXIT_FAILURE);
-    }
-    printf("Found a friend! You receive first.\n");
+int handle_client(int client){
+	struct message_header header;
+	if(get_header(client,&header)){
+		printf("Failed to receive header from client, disconnecting");
+		close(client);
+		return -1;
+	}
 
-    struct message msg;
-    memset(&msg,0,sizeof msg);
-    while(get_message(client, &msg) >= 0){
-      printf("Friend: %s\n",msg.message);
-      printf("You: ");
+	switch(header.type){
+		case JOIN:
+		break;
+		case MESSAGE:
+		{
+			printf("Receiving message...\n");
+			struct message msg;
+			get_message(client, ntohs(header.length), &msg);
+			printf("Client sent: %s\n",msg.message);
 
-      memset(&msg,0, sizeof msg);
-      send_message(client, &msg);
-      memset(&msg,0,sizeof msg);
-    }
-  }
+		}
+				
+		break;
+		case COMMAND:
+		break;
+		default:
+			printf("Unknown command type: %d\nDisconnecting client\n",header.type);
+			close(client);
+	}
+
+	/*while(get_message(client, &msg) >= 0){
+		printf("Friend: %s\n",msg.message);
+		printf("You: ");
+
+		memset(&msg,0, sizeof msg);
+		send_message(client, &msg);
+		memset(&msg,0,sizeof msg);
+	}
+	*/
+}
+
+
+// Checks if the bit value is set in to_test
+// eg if(has_access(client_user->permissions, ADMIN_G);
+int has_access(uint16_t to_test, uint16_t value){
+	return to_test & value;
 }
 
 void usage(const char *name){
