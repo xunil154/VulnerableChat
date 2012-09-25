@@ -12,7 +12,7 @@ client: ../bin/client
 ../bin/client: ../bin/common.o client.c
 	$(CC) -o ../bin/client ../bin/common.o client.c
 
-../bin/common.o: common.c common.h
+../bin/common.o: common.c common.h chat.h
 	$(CC) -c common.c -o ../bin/common.o
 
 clean:

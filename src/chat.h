@@ -11,7 +11,7 @@
 #define NAME_LEN 20
 #define PORT 1337
 
-#define VERSION 457
+#define VERSION 1
 
 // MESSAGE TYPES //
 #define JOIN		0

@@ -56,7 +56,6 @@ int start_listening(int port){
 
 int run_server(int port){
 	struct message *msg= NULL;
-	struct timeval tv;
 	fd_set readfds;
 	fd_set master;
 
@@ -70,6 +69,7 @@ int run_server(int port){
 	FD_SET(sock, &master);
 
 	while(1){
+		struct timeval tv;
 		tv.tv_sec = 2;
 		tv.tv_usec = 500000;
 
@@ -78,7 +78,7 @@ int run_server(int port){
 		// don't care about writefds and exceptfds:
 		select(max_sock+1, &readfds, NULL, NULL, &tv);
 
-		if(tv.tv_sec == 0){ printf("Timeout\n"); continue; }
+		if(tv.tv_sec == 0){ continue; }
 
 		for(int i = 0; i < max_sock+1; ++i){
 			if (FD_ISSET(i, &readfds)){
@@ -105,10 +105,11 @@ int run_server(int port){
 
 int handle_client(int client){
 	unsigned char buffer[BUFFER_SIZE];
+	memset(buffer,0,sizeof(buffer));
 
 	struct header header;
 	if(get_header(client,&header)){
-		printf("Failed to receive header from client, disconnecting");
+		printf("Failed to receive header from client, disconnecting\n");
 		close(client);
 		return -1;
 	}
@@ -156,7 +157,7 @@ int join(int client, struct join_request *req){
 
 	int response = OK;
 	int id = find_user(req->name);
-	if(id > 0){
+	if(id >= 0){
 		response = USED;
 		printf("Username %s already exists in the system\n");
 	}else{
@@ -200,8 +201,10 @@ int has_access(uint16_t to_test, uint16_t value){
 }
 
 int find_user(char* username){
+	printf("Searching for user %s\n",username);
 	for(int i = 0; i < next_user_id; i++){
 		struct user user = users[i];
+		printf(" trying: %s\n",user.name);
 		if(strcmp(user.name, username) == 0){
 			return i;
 		}

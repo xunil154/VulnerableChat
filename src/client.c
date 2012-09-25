@@ -60,14 +60,20 @@ int client(char* username, char* server, char* port){
 			printf("Unknown error!!!\n");
 			exit(1);
 		}
+	}else{
+		printf("We registerd succesfully. New id: %d\n",response);
+		user_id = response;
 	}
 
 
 	struct message msg = { 23, 0, "This is a test message" };
+	msg.length = strlen(msg.message);
 
 	if(send_message(socket, &msg) <  0){
 		return -1;
 	}
+
+	sleep(30);
 
 	return 0;
 }
@@ -111,7 +117,7 @@ int register_username(int server, char* username){
 	}
 	switch(response.status){
 		case OK:
-			return 0;
+			return response.user_id;
 		case USED:
 			return -2;
 		case INVALID:
