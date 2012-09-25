@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <strings.h>
+#include <string.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <time.h>
@@ -104,22 +104,31 @@ int run_server(int port){
 }
 
 int handle_client(int client){
-	struct message_header header;
+	unsigned char buffer[BUFFER_SIZE];
+
+	struct header header;
 	if(get_header(client,&header)){
 		printf("Failed to receive header from client, disconnecting");
 		close(client);
 		return -1;
 	}
 
+	printf("Getting client data of length: %d\n",header.length);
+	if(get_data(client, &buffer, (header.length)) < 0){
+		printf("Could not retrieve client's data\n");
+		return -1;
+	}
+
+	printf("Received packet type: %d and length: %d\n",header.type, header.length);
 	switch(header.type){
 		case JOIN:
+			join(client,(struct join_request*)buffer);
 		break;
 		case MESSAGE:
 		{
 			printf("Receiving message...\n");
-			struct message msg;
-			get_message(client, ntohs(header.length), &msg);
-			printf("Client sent: %s\n",msg.message);
+			struct message *msg = (struct message*)buffer;
+			printf("Client sent: %s\n",msg->message);
 
 		}
 				
@@ -142,11 +151,62 @@ int handle_client(int client){
 	*/
 }
 
+int join(int client, struct join_request *req){
+	printf("Trying to register new user %s\n",req->name);
+
+	int response = OK;
+	int id = find_user(req->name);
+	if(id > 0){
+		response = USED;
+		printf("Username %s already exists in the system\n");
+	}else{
+		id = next_user_id++;
+	}
+
+	struct join_response resp;
+	resp.user_id = id;
+	resp.status = response;
+
+	if(send_join_response(client, &resp) < 0){
+		printf("Failed to send registration response\n");
+		return -1;
+	}
+
+/*struct user{
+	uint16_t id;
+	uint16_t groups;
+	int socket;
+	int name_length;
+	unsigned char name[NAME_LEN];
+}__attribute__((packed));
+*/
+	struct user *user = &(users[id]);
+
+	user->id = id;
+	user->groups = DEFAULT_GROUP;
+	user->socket = client;
+	user->name_length = req->name_length;
+	strcpy(user->name, req->name);
+
+	printf("User %s joined with the id %d\n",user->name,user->id);
+
+}
+
 
 // Checks if the bit value is set in to_test
 // eg if(has_access(client_user->permissions, ADMIN_G);
 int has_access(uint16_t to_test, uint16_t value){
 	return to_test & value;
+}
+
+int find_user(char* username){
+	for(int i = 0; i < next_user_id; i++){
+		struct user user = users[i];
+		if(strcmp(user.name, username) == 0){
+			return i;
+		}
+	}
+	return -1;
 }
 
 void usage(const char *name){

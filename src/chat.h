@@ -16,6 +16,7 @@
 // MESSAGE TYPES //
 #define JOIN		0
 #define JOIN_RESP	1
+
 #define MESSAGE		10
 #define COMMAND		20
 
@@ -23,24 +24,48 @@
 #define USER_G		1
 #define ADMIN_G		(1<<16)
 
-struct message_header{
+#define DEFAULT_GROUP USER_G
+
+// JOIN STATUS
+#define OK		0
+#define USED 	1
+#define INVALID 2
+
+struct header{
 	uint16_t version;
 	uint16_t type;
 	uint16_t length;
 }__attribute__((packed));
 
 struct message{
+	uint16_t user_id;
 	uint16_t length;
 	unsigned char message[MAX_LEN];
 }__attribute__((packed));
 
 struct command{
 
-};
+}__attribute__((packed));
+
+struct join_request{
+	uint16_t name_length;
+	unsigned char name[NAME_LEN];
+}__attribute__((packed));
+
+struct join_response{
+	uint8_t status;
+	uint16_t user_id;
+}__attribute__((packed));
+
+
+
 
 struct user{
-	unsigned char name[NAME_LEN];
+	uint16_t id;
 	uint16_t groups;
-};
+	int socket;
+	int name_length;
+	unsigned char name[NAME_LEN];
+}__attribute__((packed));
 
 #endif

@@ -3,7 +3,12 @@
 
 #include "chat.h"
 
-int get_message(int client, int length, struct message *msg);
+int get_header(int client, struct header *header);
 int send_message(int client, struct message *msg);
+int send_join_request(int client, struct join_request *req);
+int send_join_response(int client, struct join_response *req);
+
+int send_data(int client, void* data, int length);
+int get_data(int client, void *buffer, int length);
 
 #endif

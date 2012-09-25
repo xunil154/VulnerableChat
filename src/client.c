@@ -1,9 +1,10 @@
 #include "chat.h"
 #include "common.h"
+#include "client.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
 #include <unistd.h>
 
 int server_connect(char* server, char* port){
@@ -31,31 +32,103 @@ int server_connect(char* server, char* port){
 		perror("Failed to connect to server");
 		return -1;
 	}	
+	struct timeval tv;
+
+	tv.tv_sec = 2;  /* 30 Secs Timeout */
+	tv.tv_usec = 0;  // Not init'ing this can cause strange errors
+
+	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
 
 	return sockfd;
 }
 
-void client(char* server, char* port){
+int client(char* username, char* server, char* port){
 	int socket = server_connect(server,port);
 	if(socket <= 0){
 		printf("An error occured connecting, try again\n");
 		exit(1);
 	}
+	int response = register_username(socket, username);
+	if( response < 0){
+		if(response == -1){
+			printf("An error occured with the registration request\n");
+			exit(1);
+		}else if(response == -2){
+			printf("Username already exists\n");
+			exit(1);
+		}else{
+			printf("Unknown error!!!\n");
+			exit(1);
+		}
+	}
 
-	sleep(2);
 
-	struct message msg = { 23, "This is a test message" };
+	struct message msg = { 23, 0, "This is a test message" };
 
-	send_message(socket, &msg);
+	if(send_message(socket, &msg) <  0){
+		return -1;
+	}
 
+	return 0;
+}
 
+// Returns 0 on success, -1 on send failure, -2 if username is already registered
+int register_username(int server, char* username){
+	if(username == NULL){
+		return -3;
+	}
+	struct join_request req;
+	memset(&req,0,sizeof(struct join_request));
+	int len = strlen(username);
+	req.name_length = len;
+	strncpy(req.name,username,len);
+
+	printf("Sending request...\n");
+	if(send_join_request(server, &req) < 0){
+		printf("Failed to send registration request\n");
+		return -1;
+	}
+
+	struct header header;
+	memset(&header,0,sizeof(header));
+
+	if(get_header(server, &header) < 0){
+		printf("Failed to retrieve registration response\n");
+		return -1;
+	}
+
+	if(header.type != JOIN_RESP){
+		printf("Invalid return type from server\n");
+		return -1;
+	}
+
+	struct join_response response;
+	memset(&response,0,sizeof(struct join_response));
+
+	if(get_data(server, &response, (int)header.length) < 0){
+		printf("Failed to get response from server\n");
+		return -1;
+	}
+	switch(response.status){
+		case OK:
+			return 0;
+		case USED:
+			return -2;
+		case INVALID:
+			return -3;
+		default:
+			return -4;
+	}
 }
 
 void usage(const char* message){
 	if(message != NULL){
 		printf("ERROR: %s\n\n",message);
 	}
-	printf("./client <host> <port>\n");
+	printf("./client <username> <host> <port>\n");
+	printf("\tusername\tYour desired username (15 characters max)\n");
+	printf("\thost\tThe host to connect to\n");
+	printf("\tport\tThe port to connect to\n");
 	if(message != NULL)
 		exit(1);
 }
@@ -65,6 +138,6 @@ int main(int argc, char** argv){
 		usage(NULL);
 	}
 
-	client(argv[1],argv[2]);
+	client(argv[1],argv[2],argv[3]);
 
 }
