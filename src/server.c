@@ -128,7 +128,18 @@ int handle_client(int client){
 	printf("Received packet type: %d and length: %d\n",header.type, header.length);
 	switch(header.type){
 		case JOIN:
-			join(client,(struct join_request*)buffer);
+		{
+			struct join_request *req = (struct join_request*)buffer ;
+			if(join(client,req) == OK){
+				struct message msg;
+				memset(&msg,0,sizeof(struct message));
+				msg.user_id = 65535;
+				strncat(msg.message,req->name,req->name_length);
+				strcat(msg.message," has joined the chat room");
+				msg.length=(strlen(msg.message));
+				broadcast(&msg);
+			}
+		}
 		break;
 		case MESSAGE:
 		{
@@ -144,18 +155,10 @@ int handle_client(int client){
 			strncat(new_msg.message, user.name, NAME_LEN);
 			strcat(new_msg.message, ": ");
 			strncat(new_msg.message, msg->message, MAX_LEN);
+			new_msg.length = strlen(new_msg.message);
+			new_msg.user_id = msg->user_id;
 
-			for(int i = 0; i < next_user_id; i++){
-				struct user other_user = users[i];
-				if(other_user.id == user.id){
-					continue;
-				}
-				if(is_connected(other_user.socket)){
-					printf("Sending message to %s\n",other_user.name);
-					send_message(other_user.socket,&new_msg);
-				}
-
-			}
+			broadcast(&new_msg);
 		}
 				
 		break;
@@ -175,6 +178,20 @@ int handle_client(int client){
 		memset(&msg,0,sizeof msg);
 	}
 	*/
+}
+
+int broadcast(struct message *msg){
+	for(int i = 0; i < next_user_id; i++){
+		struct user other_user = users[i];
+		if(other_user.id == msg->user_id){
+			continue;
+		}
+		if(is_connected(other_user.socket)){
+			printf("Sending message to %s\n",other_user.name);
+			send_message(other_user.socket,msg);
+		}
+
+	}
 }
 
 int join(int client, struct join_request *req){
@@ -215,6 +232,7 @@ int join(int client, struct join_request *req){
 	strcpy(user->name, req->name);
 
 	printf("User %s joined with the id %d\n",user->name,user->id);
+	return response;
 
 }
 

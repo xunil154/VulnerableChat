@@ -5,6 +5,15 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
+int read_line(unsigned char *buffer){
+	int c;
+	int pos = 0;
+	while((c = getc(stdin)) != '\n'){
+		buffer[pos++] = (char)c;
+	}
+	return pos;
+}
+
 int get_header(int client, struct header* header){
   // read the version and length
 

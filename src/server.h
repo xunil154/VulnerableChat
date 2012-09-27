@@ -15,6 +15,8 @@ int find_user(char* name);
 
 int is_connected(int socket);
 
+int broadcast(struct message *message);
+
 struct user users[1024];
 int next_user_id = 0;
 

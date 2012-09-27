@@ -35,7 +35,9 @@ int interface(int server_socket){
 				}else if(i == STDIN){
 					struct message message;
 					memset(&message,0,sizeof(struct message));
-					gets(message.message);
+
+					read_line((unsigned char*)&message.message);
+
 					message.length = strlen(message.message);
 					message.user_id = user_id;
 					send_message(server_socket,&message);
@@ -56,22 +58,25 @@ int handle_server(int server_socket){
 		return -1;
 	}
 
+#ifdef DEBUG
 	printf("Getting server data of length: %d\n",header.length);
+#endif
 	if(get_data(server_socket, &buffer, (header.length)) < 0){
 		printf("Could not retrieve server's data\n");
 		return -1;
 	}
 
+#ifdef DEBUG
 	printf("Received packet type: %d and length: %d\n",header.type, header.length);
+#endif
 	switch(header.type){
 		case JOIN_RESP:
 			printf("We should have already received our join response.... strange hapenings\n");
 		break;
 		case MESSAGE:
 		{
-			printf("Receiving message...\n");
 			struct message *msg = (struct message*)buffer;
-			printf("Server sent: %s\n",msg->message);
+			printf("%s\n",msg->message);
 
 		}
 				

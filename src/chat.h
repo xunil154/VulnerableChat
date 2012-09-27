@@ -1,13 +1,16 @@
 #ifndef __CHAT_H__
 #define __CHAT_H__
 
+//#define DEBUG
+
 #include<sys/socket.h>
 #include<sys/types.h>
 #include<inttypes.h>
 #include<netdb.h>
 
-#define BUFFER_SIZE 140
-#define MAX_LEN 140
+#define MAX_LEN 256
+#define BUFFER_SIZE MAX_LEN*2
+
 #define NAME_LEN 20
 #define PORT 1337
 

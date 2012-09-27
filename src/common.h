@@ -11,4 +11,6 @@ int send_join_response(int client, struct join_response *req);
 int send_data(int client, void* data, int length, uint16_t type);
 int get_data(int client, void *buffer, int length);
 
+int read_line(unsigned char* buffer);
+
 #endif
