@@ -103,6 +103,11 @@ int run_server(int port){
 	}
 }
 
+int is_connected(int socket){
+	if(socket <= 0) return 0;
+	return 1;
+}
+
 int handle_client(int client){
 	unsigned char buffer[BUFFER_SIZE];
 	memset(buffer,0,sizeof(buffer));
@@ -127,10 +132,30 @@ int handle_client(int client){
 		break;
 		case MESSAGE:
 		{
-			printf("Receiving message...\n");
+//			printf("Receiving message...\n");
 			struct message *msg = (struct message*)buffer;
 			printf("Client sent: %s\n",msg->message);
 
+			struct message new_msg;
+			memset(&new_msg,0,sizeof(struct message));
+
+			struct user user = users[msg->user_id];
+
+			strncat(new_msg.message, user.name, NAME_LEN);
+			strcat(new_msg.message, ": ");
+			strncat(new_msg.message, msg->message, MAX_LEN);
+
+			for(int i = 0; i < next_user_id; i++){
+				struct user other_user = users[i];
+				if(other_user.id == user.id){
+					continue;
+				}
+				if(is_connected(other_user.socket)){
+					printf("Sending message to %s\n",other_user.name);
+					send_message(other_user.socket,&new_msg);
+				}
+
+			}
 		}
 				
 		break;

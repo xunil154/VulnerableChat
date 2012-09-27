@@ -23,6 +23,8 @@ int get_header(int client, struct header* header){
 int send_message(int client, struct message *msg){
 	int msg_size = sizeof(uint16_t)*2 + msg->length;
 
+	printf("Sending message: %s\n",msg->message);
+
 	if(send_data(client, msg, msg_size, MESSAGE) < 0){
 		return -1;
 	}

@@ -18,7 +18,11 @@
 #define JOIN_RESP	1
 
 #define MESSAGE		10
+#define PM 			11	
+
 #define COMMAND		20
+#define KICK		21
+#define PROMOTE		22
 
 // ROLES
 #define USER_G		1

@@ -13,6 +13,8 @@ int join(int client, struct join_request* req);
 
 int find_user(char* name);
 
+int is_connected(int socket);
+
 struct user users[1024];
 int next_user_id = 0;
 

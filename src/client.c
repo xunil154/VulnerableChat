@@ -1,6 +1,7 @@
 #include "chat.h"
 #include "common.h"
 #include "client.h"
+#include "interface.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +49,8 @@ int client(char* username, char* server, char* port){
 		printf("An error occured connecting, try again\n");
 		exit(1);
 	}
-	int response = register_username(socket, username);
+	server_socket = socket;
+	int response = register_username(username);
 	if( response < 0){
 		if(response == -1){
 			printf("An error occured with the registration request\n");
@@ -65,22 +67,14 @@ int client(char* username, char* server, char* port){
 		user_id = response;
 	}
 
-
-	struct message msg = { 23, 0, "This is a test message" };
-	msg.length = strlen(msg.message);
-
-	if(send_message(socket, &msg) <  0){
-		return -1;
-	}
-
-	sleep(30);
+	interface(socket);
 
 	return 0;
 }
 
 // Returns 0 on success, -1 on send failure, -2 if username is already registered
-int register_username(int server, char* username){
-	if(username == NULL){
+int register_username(char* username){
+	if(username == NULL || server_socket <= 0){
 		return -3;
 	}
 	struct join_request req;
@@ -89,8 +83,8 @@ int register_username(int server, char* username){
 	req.name_length = len;
 	strncpy(req.name,username,len);
 
-	printf("Sending request...\n");
-	if(send_join_request(server, &req) < 0){
+	printf("Sending join request...\n");
+	if(send_join_request(server_socket, &req) < 0){
 		printf("Failed to send registration request\n");
 		return -1;
 	}
@@ -98,7 +92,7 @@ int register_username(int server, char* username){
 	struct header header;
 	memset(&header,0,sizeof(header));
 
-	if(get_header(server, &header) < 0){
+	if(get_header(server_socket, &header) < 0){
 		printf("Failed to retrieve registration response\n");
 		return -1;
 	}
@@ -111,7 +105,7 @@ int register_username(int server, char* username){
 	struct join_response response;
 	memset(&response,0,sizeof(struct join_response));
 
-	if(get_data(server, &response, (int)header.length) < 0){
+	if(get_data(server_socket, &response, (int)header.length) < 0){
 		printf("Failed to get response from server\n");
 		return -1;
 	}
