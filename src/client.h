@@ -12,5 +12,8 @@ int client(char* username, char* server, char* port);
 int register_username(char* username);
 void usage(const char* message);
 
+struct config{
+	uint16_t mode;
+};
 
 #endif

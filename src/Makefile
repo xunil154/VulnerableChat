@@ -10,7 +10,7 @@ client: ../bin/client
 	$(CC) -o ../bin/server ../bin/common.o server.c
 
 ../bin/client: ../bin/common.o client.c interface.h interface.c
-	$(CC) -o ../bin/client ../bin/common.o interface.c client.c
+	$(CC)  -lncurses -o ../bin/client ../bin/common.o interface.c client.c
 
 ../bin/common.o: common.c common.h chat.h
 	$(CC) -c common.c -o ../bin/common.o

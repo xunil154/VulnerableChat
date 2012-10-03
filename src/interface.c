@@ -7,10 +7,38 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/time.h>
+#include <curses.h>
+//#include <signal.h>
 
 #define STDIN 0
 
+int EXIT = 0;
+
+void signal_handler(int sig){
+	signal(SIGINT, signal_handler);
+	printf("You pressed ^C\n");
+	close_interface();
+	EXIT = 1;
+}
+
+int close_interface(){
+	endwin();
+}
+
+int init_interface(){
+	signal(SIGINT, signal_handler);
+	//signal(SIGQUIT, quitproc);
+
+	initscr();			/* Start curses mode 		  */
+	//printw("Hello World !!!");	/* Print Hello World		  */
+	refresh();			/* Print it on to the real screen */
+	//getch();			/* Wait for user input */
+}
+
 int interface(int server_socket){
+
+	init_interface();
 
 	fd_set master;
 	fd_set readset;
@@ -20,13 +48,18 @@ int interface(int server_socket){
 	FD_SET(server_socket, &master);
 	FD_SET(STDIN, &master);
 
-	int exit = 0;
 	int max_sock = server_socket;
-	while(exit == 0){
+	struct timeval tv;
+	while(EXIT == 0){
 		readset = master;
 
+		tv.tv_sec = 1;
+		tv.tv_usec = 0;
 		// don't care about writefds and exceptfds:
-		select(max_sock+1, &readset, NULL, NULL, NULL);
+		select(max_sock+1, &readset, NULL, NULL, &tv);
+		if(tv.tv_sec == 0){
+			continue;
+		}
 
 		for(int i = 0; i < max_sock+1; ++i){
 			if (FD_ISSET(i, &readset)){
