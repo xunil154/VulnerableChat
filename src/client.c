@@ -49,7 +49,11 @@ int client(char* username, char* server, char* port){
 		printf("An error occured connecting, try again\n");
 		exit(1);
 	}
-	server_socket = socket;
+
+	config.self.socket = socket;
+	strncpy(config.self.name,username,strlen(username));
+	config.self.name_length = strlen(username);
+
 	int response = register_username(username);
 	if( response < 0){
 		if(response == -1){
@@ -64,17 +68,17 @@ int client(char* username, char* server, char* port){
 		}
 	}else{
 		printf("We registerd succesfully. New id: %d\n",response);
-		user_id = response;
+		config.self.id = response;
 	}
 
-	interface(socket);
+	interface(&config);
 
 	return 0;
 }
 
 // Returns 0 on success, -1 on send failure, -2 if username is already registered
 int register_username(char* username){
-	if(username == NULL || server_socket <= 0){
+	if(username == NULL || config.self.socket <= 0){
 		return -3;
 	}
 	struct join_request req;
@@ -84,7 +88,7 @@ int register_username(char* username){
 	strncpy(req.name,username,len);
 
 	printf("Sending join request...\n");
-	if(send_join_request(server_socket, &req) < 0){
+	if(send_join_request(config.self.socket, &req) < 0){
 		printf("Failed to send registration request\n");
 		return -1;
 	}
@@ -92,7 +96,7 @@ int register_username(char* username){
 	struct header header;
 	memset(&header,0,sizeof(header));
 
-	if(get_header(server_socket, &header) < 0){
+	if(get_header(config.self.socket, &header) < 0){
 		printf("Failed to retrieve registration response\n");
 		return -1;
 	}
@@ -105,7 +109,7 @@ int register_username(char* username){
 	struct join_response response;
 	memset(&response,0,sizeof(struct join_response));
 
-	if(get_data(server_socket, &response, (int)header.length) < 0){
+	if(get_data(config.self.socket, &response, (int)header.length) < 0){
 		printf("Failed to get response from server\n");
 		return -1;
 	}
@@ -129,8 +133,7 @@ void usage(const char* message){
 	printf("\tusername\tYour desired username (15 characters max)\n");
 	printf("\thost\tThe host to connect to\n");
 	printf("\tport\tThe port to connect to\n");
-	if(message != NULL)
-		exit(1);
+	exit(1);
 }
 
 int main(int argc, char** argv){

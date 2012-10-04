@@ -65,8 +65,6 @@ struct join_response{
 }__attribute__((packed));
 
 
-
-
 struct user{
 	uint16_t id;
 	uint16_t groups;

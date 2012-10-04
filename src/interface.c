@@ -14,6 +14,8 @@
 #define STDIN 0
 
 int EXIT = 0;
+int buffer_pos = 0;
+struct config *CONFIG;
 
 void signal_handler(int sig){
 	signal(SIGINT, signal_handler);
@@ -36,7 +38,7 @@ int init_interface(){
 	//getch();			/* Wait for user input */
 }
 
-int interface(int server_socket){
+int interface(struct config* config){
 
 	init_interface();
 
@@ -45,10 +47,12 @@ int interface(int server_socket){
 
 	FD_ZERO(&readset);
 	FD_ZERO(&master);
-	FD_SET(server_socket, &master);
+	FD_SET(config->self.socket, &master);
 	FD_SET(STDIN, &master);
 
-	int max_sock = server_socket;
+	CONFIG = config;
+
+	int max_sock = config->self.socket;
 	struct timeval tv;
 	while(EXIT == 0){
 		readset = master;
@@ -63,22 +67,51 @@ int interface(int server_socket){
 
 		for(int i = 0; i < max_sock+1; ++i){
 			if (FD_ISSET(i, &readset)){
-				if(i == server_socket){
-					handle_server(server_socket);
+				if(i == config->self.socket){
+					handle_server(config->self.socket);
 				}else if(i == STDIN){
-					struct message message;
-					memset(&message,0,sizeof(struct message));
-
-					read_line((unsigned char*)&message.message);
-
-					message.length = strlen(message.message);
-					message.user_id = user_id;
-					send_message(server_socket,&message);
+					handle_user();
 				}
 			}
 		}
 	}
 	return 0;
+}
+
+int handle_user(){
+	int c = getchar();
+	switch(c){
+		case '\n':
+			process_user(buffer);
+			break;
+		default:
+			buffer[buffer_pos++] = (char)c;
+	}
+
+}
+
+int process_user(){
+	int buffer_len = strlen(buffer);
+	int command = 0;
+
+	// TODO: add command processing
+	//if(buffer[0] == '/'){
+	//
+	//}
+
+	switch(command){
+		case 0:
+		{
+			struct message message;
+			memset(&message,0,sizeof(struct message));
+			strcpy(message.message,buffer);
+
+			message.length = strlen(message.message);
+			message.user_id = CONFIG->self.id;
+			send_message(CONFIG->self.socket,&message);
+		}
+	}
+
 }
 
 int handle_server(int server_socket){
