@@ -26,6 +26,7 @@ void signal_handler(int sig){
 
 int close_interface(){
 	endwin();
+	close(CONFIG->self.socket);
 }
 
 int init_interface(){
@@ -33,7 +34,12 @@ int init_interface(){
 	//signal(SIGQUIT, quitproc);
 
 	initscr();			/* Start curses mode 		  */
+	raw();
+	nodelay(stdscr,TRUE);
+	keypad(stdscr, TRUE);           /* We get F1, F2 etc..          */
+	noecho();
 	//printw("Hello World !!!");	/* Print Hello World		  */
+	printw("Press F4 to exit");
 	refresh();			/* Print it on to the real screen */
 	//getch();			/* Wait for user input */
 }
@@ -57,35 +63,51 @@ int interface(struct config* config){
 	while(EXIT == 0){
 		readset = master;
 
-		tv.tv_sec = 1;
-		tv.tv_usec = 0;
+		tv.tv_sec = 0;
+		tv.tv_usec = 100;
 		// don't care about writefds and exceptfds:
 		select(max_sock+1, &readset, NULL, NULL, &tv);
-		if(tv.tv_sec == 0){
+		if(tv.tv_sec == 0 && tv.tv_usec == 0){
+			handle_user();
 			continue;
 		}
 
 		for(int i = 0; i < max_sock+1; ++i){
 			if (FD_ISSET(i, &readset)){
 				if(i == config->self.socket){
-					handle_server(config->self.socket);
+					if(handle_server(config->self.socket) < 0){
+						close_interface();
+						perror("Connection closed to server");
+						return -1;
+					}
 				}else if(i == STDIN){
 					handle_user();
 				}
 			}
 		}
+		refresh();
 	}
 	return 0;
 }
 
 int handle_user(){
-	int c = getchar();
+	refresh();
+	int c = getch();
+	if(c == ERR){
+		return 1;
+	}
 	switch(c){
 		case '\n':
 			process_user(buffer);
+			buffer_pos = 0;
 			break;
+		case KEY_F(4):
+			close_interface();
+			exit(0);
 		default:
+			printw("%c",(char)c);
 			buffer[buffer_pos++] = (char)c;
+			refresh();
 	}
 
 }
@@ -112,9 +134,11 @@ int process_user(){
 		}
 	}
 
+	memset(buffer,0,sizeof(buffer));
 }
 
 int handle_server(int server_socket){
+	char buffer[BUFFER_SIZE];
 	memset(buffer,0,sizeof(buffer));
 
 	struct header header;
@@ -129,6 +153,7 @@ int handle_server(int server_socket){
 #endif
 	if(get_data(server_socket, &buffer, (header.length)) < 0){
 		printf("Could not retrieve server's data\n");
+		close(server_socket);
 		return -1;
 	}
 
@@ -142,8 +167,8 @@ int handle_server(int server_socket){
 		case MESSAGE:
 		{
 			struct message *msg = (struct message*)buffer;
-			printf("%s\n",msg->message);
-
+			printw("%s\n",msg->message);
+			refresh();
 		}
 				
 		break;
@@ -152,6 +177,7 @@ int handle_server(int server_socket){
 		default:
 			printf("Unknown command type: %d\nDisconnecting client\n",header.type);
 			close(server_socket);
+			return -1;
 	}
 
 	/*while(get_message(client, &msg) >= 0){

@@ -17,4 +17,8 @@ int handle_user();
 int process_user();
 
 void signal_handle(void);
+
+struct window{
+
+};
 #endif
