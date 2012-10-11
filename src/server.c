@@ -183,9 +183,9 @@ int handle_client(int client){
 int broadcast(struct message *msg){
 	for(int i = 0; i < next_user_id; i++){
 		struct user other_user = users[i];
-		if(other_user.id == msg->user_id){
+	/*	if(other_user.id == msg->user_id){
 			continue;
-		}
+		} */
 		if(is_connected(other_user.socket)){
 			printf("Sending message to %s\n",other_user.name);
 			send_message(other_user.socket,msg);
