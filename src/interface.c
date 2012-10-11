@@ -125,6 +125,27 @@ int handle_user(){
 		case KEY_F(4):
 			close_interface();
 			exit(0);
+		case KEY_F(1):
+		case KEY_F(2):
+		case KEY_F(3):
+		case KEY_F(5):
+		case KEY_F(6):
+		case KEY_F(7):
+		case KEY_F(8):
+		case KEY_F(9):
+		case KEY_F(10):
+		case KEY_F(11):
+		case KEY_F(12):
+			break;
+		case KEY_UP:
+		case KEY_DOWN:
+			break;
+		case KEY_LEFT:
+			break;
+		case KEY_RIGHT:
+			break;
+		case KEY_BACKSPACE:
+			break;
 		default:
 			wprintw(windows[INPUT_WIN],"%c",(char)c);
 			buffer[buffer_pos++] = (char)c;
