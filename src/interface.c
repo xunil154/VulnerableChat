@@ -48,20 +48,22 @@ int init_interface(){
 
 	windows[INPUT_WIN] = create_newwin(4, COLS, LINES-4, 0);
 
-	wmove(windows[CHAT_WIN], 1, 2);
-	wmove(windows[INPUT_WIN], 1, 2);
-	//wprintw(windows[INPUT_WIN], CONFIG->self.name);
-	wprintw(windows[INPUT_WIN], " >");
-	wrefresh(windows[INPUT_WIN]);
+	print_prompt(windows[INPUT_WIN]);
 
 	printw("Press F4 to exit");
 	printw("\tYou are: ");
 	printw(CONFIG->self.name);
 	refresh();			/* Print it on to the real screen */
 
-	//destroy_win(my_win);
+}
 
-	//getch();			/* Wait for user input */
+void print_prompt(WINDOW *win){
+	wclear(win);
+	box(win, 0 , 0);
+	wmove(win, 1, 2);
+	wmove(win, 1, 2);
+	wprintw(win, " > ");
+	wrefresh(win);
 }
 
 int interface(struct config* config){
@@ -135,12 +137,7 @@ int process_user(){
 	int buffer_len = strlen(buffer);
 	int command = 0;
 
-	wclear(windows[INPUT_WIN]);
-	box(windows[INPUT_WIN], 0 , 0);
-	wmove(windows[INPUT_WIN], 1, 1);
-	//wprintw(windows[INPUT_WIN], CONFIG->self.name);
-	wprintw(windows[INPUT_WIN]," >");
-	wrefresh(windows[INPUT_WIN]);
+	print_prompt(windows[INPUT_WIN]);
 
 	if(buffer_len == 0){
 		return -1;

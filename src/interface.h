@@ -20,8 +20,10 @@ int process_user();
 void signal_handle(void);
 
 
+
 WINDOW *create_newwin(int height, int width, int starty, int startx);
 void destroy_win(WINDOW *local_win);
+void print_prompt(WINDOW *win);
 
 
 unsigned char buffer[1024];
