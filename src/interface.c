@@ -26,6 +26,7 @@ void signal_handler(int sig){
 }
 
 int close_interface(){
+	destroy_chat_window();
 	endwin();
 	close(CONFIG->self.socket);
 }
@@ -54,6 +55,8 @@ int init_interface(){
 	wrefresh(windows[INPUT_WIN]);
 
 	printw("Press F4 to exit");
+	printw("\tYou are: ");
+	printw(CONFIG->self.name);
 	refresh();			/* Print it on to the real screen */
 
 	//destroy_win(my_win);
@@ -62,6 +65,7 @@ int init_interface(){
 }
 
 int interface(struct config* config){
+	CONFIG = config;
 
 	init_interface();
 
@@ -73,7 +77,6 @@ int interface(struct config* config){
 	FD_SET(config->self.socket, &master);
 	FD_SET(STDIN, &master);
 
-	CONFIG = config;
 
 	int max_sock = config->self.socket;
 	struct timeval tv;
