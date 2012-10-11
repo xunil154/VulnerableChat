@@ -96,7 +96,9 @@ int run_server(int port){
 					if(client > max_sock) max_sock = client;
 					FD_SET(client,&master);
 				}else{
-					handle_client(i);
+					if(handle_client(i) < 0){
+						FD_CLR(i, &master);
+					}
 				}
 			}
 		}
@@ -111,14 +113,15 @@ int is_connected(int socket){
 int handle_client(int client){
 	unsigned char buffer[BUFFER_SIZE];
 	memset(buffer,0,sizeof(buffer));
+#ifdef DEBUG
+	printf("Getting data from client %d\n",client);
+#endif
 
 	struct header header;
 	if(get_header(client,&header)){
 		printf("Failed to receive header from client, disconnecting\n");
 		int user_id = find_user_by_socket(client);
-		printf("Removing user id: %d\n",user_id);
 		remove_user(user_id);
-		close(client);
 		return -1;
 	}
 
@@ -270,16 +273,25 @@ int find_user(char* username){
 
 int remove_user(int id){
 	struct message msg;
+	printf("Removing user id: %d\n",id);
 
 	memset(&msg,0,sizeof(struct message));
 	msg.user_id = 65535;
 	strncat(msg.message,users[id].name,users[id].name_length);
 	strcat(msg.message," has left");
 	msg.length=(strlen(msg.message));
-	broadcast(&msg);
 
-	close(users[id].socket);
-	memset(&(users[id]),0,sizeof(struct user));
+	//memset(users+id),0,sizeof(struct user));
+	struct user *user = &users[id];
+	user->id = 0;
+	user->groups = 0;
+	close(user->socket);
+	user->socket=0;
+	user->name_length = 0;
+	memset(user->name,0,NAME_LEN);
+
+	broadcast(&msg);
+	printf("User removed\n");
 }
 
 void usage(const char *name){

@@ -63,7 +63,6 @@ int get_data(int client, void *msg, int length){
 	struct timeval tv;
 
 	tv.tv_sec = 1; tv.tv_usec = 0; 
-
 	setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
 
 //	printf("Reading %d bytes...\n", length);
