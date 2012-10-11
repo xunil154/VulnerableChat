@@ -7,7 +7,8 @@
 #include <curses.h>
 #include <signal.h>
 
-unsigned char buffer[1024];
+#define CHAT_WIN 0
+#define INPUT_WIN 1
 
 int interface(struct config *config);
 int init_interface();
@@ -18,7 +19,13 @@ int process_user();
 
 void signal_handle(void);
 
-struct window{
 
-};
+WINDOW *create_newwin(int height, int width, int starty, int startx);
+void destroy_win(WINDOW *local_win);
+
+
+
+unsigned char buffer[1024];
+WINDOW* windows[3];
+
 #endif

@@ -38,9 +38,23 @@ int init_interface(){
 	nodelay(stdscr,TRUE);
 	keypad(stdscr, TRUE);           /* We get F1, F2 etc..          */
 	noecho();
-	//printw("Hello World !!!");	/* Print Hello World		  */
+
+	refresh();
+
+	windows[CHAT_WIN] = create_newwin(LINES-4, COLS, 1, 0);
+	windows[INPUT_WIN] = create_newwin(4, COLS, LINES-4, 0);
+
+	wmove(windows[CHAT_WIN], 1, 2);
+	wmove(windows[INPUT_WIN], 1, 2);
+	//wprintw(windows[INPUT_WIN], CONFIG->self.name);
+	wprintw(windows[INPUT_WIN], " >");
+	wrefresh(windows[INPUT_WIN]);
+
 	printw("Press F4 to exit");
 	refresh();			/* Print it on to the real screen */
+
+	//destroy_win(my_win);
+
 	//getch();			/* Wait for user input */
 }
 
@@ -65,7 +79,7 @@ int interface(struct config* config){
 
 		tv.tv_sec = 0;
 		tv.tv_usec = 100;
-		// don't care about writefds and exceptfds:
+
 		select(max_sock+1, &readset, NULL, NULL, &tv);
 		if(tv.tv_sec == 0 && tv.tv_usec == 0){
 			handle_user();
@@ -79,8 +93,7 @@ int interface(struct config* config){
 						close_interface();
 						perror("Connection closed to server");
 						return -1;
-					}
-				}else if(i == STDIN){
+					} }else if(i == STDIN){
 					handle_user();
 				}
 			}
@@ -105,9 +118,9 @@ int handle_user(){
 			close_interface();
 			exit(0);
 		default:
-			printw("%c",(char)c);
+			wprintw(windows[INPUT_WIN],"%c",(char)c);
 			buffer[buffer_pos++] = (char)c;
-			refresh();
+			wrefresh(windows[INPUT_WIN]);
 	}
 
 }
@@ -115,6 +128,17 @@ int handle_user(){
 int process_user(){
 	int buffer_len = strlen(buffer);
 	int command = 0;
+
+	wclear(windows[INPUT_WIN]);
+	box(windows[INPUT_WIN], 0 , 0);
+	wmove(windows[INPUT_WIN], 1, 1);
+	//wprintw(windows[INPUT_WIN], CONFIG->self.name);
+	wprintw(windows[INPUT_WIN]," >");
+	wrefresh(windows[INPUT_WIN]);
+
+	if(buffer_len == 0){
+		return -1;
+	}
 
 	// TODO: add command processing
 	//if(buffer[0] == '/'){
@@ -167,8 +191,8 @@ int handle_server(int server_socket){
 		case MESSAGE:
 		{
 			struct message *msg = (struct message*)buffer;
-			printw("%s\n",msg->message);
-			refresh();
+			wprintw(windows[CHAT_WIN],"%s\n",msg->message);
+			wrefresh(windows[CHAT_WIN]);
 		}
 				
 		break;
@@ -189,4 +213,38 @@ int handle_server(int server_socket){
 		memset(&msg,0,sizeof msg);
 	}
 	*/
+}
+
+WINDOW *create_newwin(int height, int width, int starty, int startx)
+{	WINDOW *local_win;
+
+	local_win = newwin(height, width, starty, startx);
+	box(local_win, 0 , 0);		/* 0, 0 gives default characters 
+					 * for the vertical and horizontal
+					 * lines			*/
+	wrefresh(local_win);		/* Show that box 		*/
+
+	return local_win;
+}
+
+void destroy_win(WINDOW *local_win)
+{	
+	/* box(local_win, ' ', ' '); : This won't produce the desired
+	 * result of erasing the window. It will leave it's four corners 
+	 * and so an ugly remnant of window. 
+	 */
+	wborder(local_win, ' ', ' ', ' ',' ',' ',' ',' ',' ');
+	/* The parameters taken are 
+	 * 1. win: the window on which to operate
+	 * 2. ls: character to be used for the left side of the window 
+	 * 3. rs: character to be used for the right side of the window 
+	 * 4. ts: character to be used for the top side of the window 
+	 * 5. bs: character to be used for the bottom side of the window 
+	 * 6. tl: character to be used for the top left corner of the window 
+	 * 7. tr: character to be used for the top right corner of the window 
+	 * 8. bl: character to be used for the bottom left corner of the window 
+	 * 9. br: character to be used for the bottom right corner of the window
+	 */
+	wrefresh(local_win);
+	delwin(local_win);
 }
