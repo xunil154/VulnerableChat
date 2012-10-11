@@ -12,6 +12,9 @@ int has_access(uint16_t check, uint16_t perm);
 int join(int client, struct join_request* req);
 
 int find_user(char* name);
+int find_user_by_socket(int socket);
+
+int remove_user(int socket);
 
 int is_connected(int socket);
 

@@ -115,6 +115,9 @@ int handle_client(int client){
 	struct header header;
 	if(get_header(client,&header)){
 		printf("Failed to receive header from client, disconnecting\n");
+		int user_id = find_user_by_socket(client);
+		printf("Removing user id: %d\n",user_id);
+		remove_user(user_id);
 		close(client);
 		return -1;
 	}
@@ -243,6 +246,16 @@ int has_access(uint16_t to_test, uint16_t value){
 	return to_test & value;
 }
 
+int find_user_by_socket(int socket){
+	for(int i = 0; i < next_user_id; i++){
+		struct user user = users[i];
+		if(user.socket == socket){
+			return i;
+		}
+	}
+	return -1;
+}
+
 int find_user(char* username){
 	printf("Searching for user %s\n",username);
 	for(int i = 0; i < next_user_id; i++){
@@ -253,6 +266,20 @@ int find_user(char* username){
 		}
 	}
 	return -1;
+}
+
+int remove_user(int id){
+	struct message msg;
+
+	memset(&msg,0,sizeof(struct message));
+	msg.user_id = 65535;
+	strncat(msg.message,users[id].name,users[id].name_length);
+	strcat(msg.message," has left");
+	msg.length=(strlen(msg.message));
+	broadcast(&msg);
+
+	close(users[id].socket);
+	memset(&(users[id]),0,sizeof(struct user));
 }
 
 void usage(const char *name){

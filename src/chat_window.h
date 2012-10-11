@@ -8,6 +8,7 @@
 int init_chat_window(int buffer_size);
 int destroy_chat_window();
 int add_message();
+int show_messages(WINDOW *win);
 
 
 struct chat_line{

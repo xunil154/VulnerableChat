@@ -3,17 +3,21 @@
 #include "chat_window.h"
 #include <stdlib.h>
 #include <curses.h>
-#include <strings.h>
+#include <string.h>
 
 int init_chat_window(int buffer_size){
 	head = NULL;
 }
 
 int destroy_chat_window(){
-	for(struct chat_line *current = head; head != NULL;){
-		head = current->prev;
+	struct chat_line *current = head;
+	struct chat_line *next = head;
+	while(next != NULL){
+		next = current->prev;
 		free(current);
+		current = next;
 	}
+	head = NULL;
 }
 
 int add_message(struct message *new_message){
