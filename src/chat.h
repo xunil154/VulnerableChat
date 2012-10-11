@@ -8,7 +8,7 @@
 #include<inttypes.h>
 #include<netdb.h>
 
-#define MAX_LEN 256
+#define MAX_LEN 512 
 #define BUFFER_SIZE MAX_LEN*2
 
 #define NAME_LEN 20

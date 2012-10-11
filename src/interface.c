@@ -1,4 +1,5 @@
 #include "interface.h"
+#include "chat_window.h"
 #include "common.h"
 #include "chat.h"
 
@@ -42,6 +43,8 @@ int init_interface(){
 	refresh();
 
 	windows[CHAT_WIN] = create_newwin(LINES-4, COLS, 1, 0);
+	init_chat_window(100);
+
 	windows[INPUT_WIN] = create_newwin(4, COLS, LINES-4, 0);
 
 	wmove(windows[CHAT_WIN], 1, 2);
@@ -161,6 +164,7 @@ int process_user(){
 	memset(buffer,0,sizeof(buffer));
 }
 
+
 int handle_server(int server_socket){
 	char buffer[BUFFER_SIZE];
 	memset(buffer,0,sizeof(buffer));
@@ -191,7 +195,9 @@ int handle_server(int server_socket){
 		case MESSAGE:
 		{
 			struct message *msg = (struct message*)buffer;
-			wprintw(windows[CHAT_WIN],"%s\n",msg->message);
+			add_message(msg);
+			show_messages(windows[CHAT_WIN]);
+			//wprintw(windows[CHAT_WIN],"%s\n",msg->message);
 			wrefresh(windows[CHAT_WIN]);
 		}
 				
