@@ -66,28 +66,14 @@ int send_user_list_request(int client){
 	return 0;
 }
 
-int get_user_list(int server, struct user *users){
-	struct user_list list;
-	get_data(server, &list, sizeof(struct user_list));
-	list.user_count = ntohs(list.user_count);
-
-	int index = 0;
-	while(list.user_count --> 0){
-		if(get_data(server, users+index, sizeof(struct user)) < 0){
-			perror("Failed to retrieve user list from server");
-			return -1;
-		}
-	}
-	return index;
-}
 
 int get_data(int client, void *msg, int length){
 	struct timeval tv;
-
 	tv.tv_sec = 1; tv.tv_usec = 0; 
+
 	setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
 
-//	printf("Reading %d bytes...\n", length);
+	fprintf(stderr,"Reading %d bytes\n", length);
 
 	// read the message from the client
 	// This is a multi part read in case not all of the data was sent

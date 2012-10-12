@@ -237,27 +237,28 @@ int handle_server(int server_socket){
 			msg.length = strlen(msg.message);
 
 			add_message(&msg);
-			show_messages(windows[CHAT_WIN]);
-			wrefresh(windows[CHAT_WIN]);
 
-			struct user users[1024];
-			int count = get_user_list(server_socket,users);
-			if(count < 0){
-				perror("Could not get user list from server");
-				return -1;
-			}
-			while(count --> 0){
+			struct user_list *list = (struct user_list*)buffer;
+			list->user_count = ntohs(list->user_count);
+
+			int index = sizeof(struct user_list);
+			while(list->user_count --> 0){
+
+				struct user *user = (struct user*)(buffer+index);
+				index += sizeof(struct user);
+
 				msg.user_id = 65535;
 				memset(msg.message,0,sizeof(msg.message));
 				strcpy(msg.message,"[who:  ");
-				strcat(msg.message,users[count].name);
-				strcpy(msg.message,"]");
+
+				strcat(msg.message,user->name);
+
+				strcat(msg.message,"]");
 				msg.length = strlen(msg.message);
 				add_message(&msg);
-				show_messages(windows[CHAT_WIN]);
-				//wprintw(windows[CHAT_WIN],"%s\n",msg->message);
-				wrefresh(windows[CHAT_WIN]);
 			}
+			show_messages(windows[CHAT_WIN]);
+			wrefresh(windows[CHAT_WIN]);
 		}
 		break;
 		default:
@@ -265,6 +266,8 @@ int handle_server(int server_socket){
 			close(server_socket);
 			return -1;
 	}
+
+	return 0;
 
 	/*while(get_message(client, &msg) >= 0){
 		printf("Friend: %s\n",msg.message);

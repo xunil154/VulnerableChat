@@ -8,7 +8,6 @@ int send_message(int client, struct message *msg);
 int send_join_request(int client, struct join_request *req);
 int send_join_response(int client, struct join_response *req);
 int send_user_list_request(int client);
-int get_user_list(int client, struct user*);
 
 int send_data(int client, void* data, int length, uint16_t type);
 int get_data(int client, void *buffer, int length);
