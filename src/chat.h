@@ -27,6 +27,9 @@
 #define KICK		21
 #define PROMOTE		22
 
+#define USER_LIST 30
+#define USER_LIST_RESP 31
+
 // ROLES
 #define USER_G		1
 #define ADMIN_G		(1<<16)
@@ -71,6 +74,10 @@ struct user{
 	int socket;
 	int name_length;
 	unsigned char name[NAME_LEN];
+}__attribute__((packed));
+
+struct user_list{
+	uint16_t user_count;
 }__attribute__((packed));
 
 #endif

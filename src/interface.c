@@ -165,9 +165,12 @@ int process_user(){
 	}
 
 	// TODO: add command processing
-	//if(buffer[0] == '/'){
-	//
-	//}
+	if(buffer[0] == '/'){
+		if(strcmp(buffer+1,"who") == 0){
+			send_user_list_request(CONFIG->self.socket);
+			return 0;
+		}
+	}
 
 	switch(command){
 		case 0:
@@ -211,7 +214,7 @@ int handle_server(int server_socket){
 #endif
 	switch(header.type){
 		case JOIN_RESP:
-			printf("We should have already received our join response.... strange hapenings\n");
+			perror("We should have already received our join response.... strange hapenings\n");
 		break;
 		case MESSAGE:
 		{
@@ -224,6 +227,38 @@ int handle_server(int server_socket){
 				
 		break;
 		case COMMAND:
+		break;
+		case USER_LIST_RESP:
+		{
+			struct message msg;
+			msg.user_id = 65535;
+			memset(msg.message,0,sizeof(msg.message));
+			strcpy(msg.message,"[server: WHO]");
+			msg.length = strlen(msg.message);
+
+			add_message(&msg);
+			show_messages(windows[CHAT_WIN]);
+			wrefresh(windows[CHAT_WIN]);
+
+			struct user users[1024];
+			int count = get_user_list(server_socket,users);
+			if(count < 0){
+				perror("Could not get user list from server");
+				return -1;
+			}
+			while(count --> 0){
+				msg.user_id = 65535;
+				memset(msg.message,0,sizeof(msg.message));
+				strcpy(msg.message,"[who:  ");
+				strcat(msg.message,users[count].name);
+				strcpy(msg.message,"]");
+				msg.length = strlen(msg.message);
+				add_message(&msg);
+				show_messages(windows[CHAT_WIN]);
+				//wprintw(windows[CHAT_WIN],"%s\n",msg->message);
+				wrefresh(windows[CHAT_WIN]);
+			}
+		}
 		break;
 		default:
 			printf("Unknown command type: %d\nDisconnecting client\n",header.type);

@@ -140,8 +140,9 @@ int handle_client(int client){
 				struct message msg;
 				memset(&msg,0,sizeof(struct message));
 				msg.user_id = 65535;
-				strncat(msg.message,req->name,req->name_length);
-				strcat(msg.message," has joined the chat room");
+				msg.message[0] = '[';
+				strncat(msg.message+1,req->name,req->name_length);
+				strcat(msg.message," has joined the chat room]");
 				msg.length=(strlen(msg.message));
 				broadcast(&msg);
 			}
@@ -167,6 +168,29 @@ int handle_client(int client){
 			broadcast(&new_msg);
 		}
 				
+		break;
+		case USER_LIST:
+		{
+			printf("WHO command ran from client %d\n",client);
+			memset(buffer, 0, sizeof(buffer));
+			struct user_list *list = (struct user_list*)buffer;
+			int count = 0;
+			int index = sizeof(struct user_list);
+			for(int i = 0; i < next_user_id; i++){
+				if(is_connected(users[i].socket)){
+					memcpy(buffer+index, &users[i],sizeof(struct user));
+					count++;
+					index += sizeof(struct user)*count;
+				}
+			}
+
+			list->user_count = htons(count);
+			printf("WHO response is %d bytes\n",index);
+			if(send_data(client,buffer,index, USER_LIST_RESP) < 0){
+				perror("Failed to send user list to client");
+				return -1;
+			}
+		}
 		break;
 		case COMMAND:
 		break;
@@ -277,8 +301,9 @@ int remove_user(int id){
 
 	memset(&msg,0,sizeof(struct message));
 	msg.user_id = 65535;
-	strncat(msg.message,users[id].name,users[id].name_length);
-	strcat(msg.message," has left");
+	msg.message[0] = '[';
+	strncat(msg.message+1,users[id].name,users[id].name_length);
+	strcat(msg.message," has left]");
 	msg.length=(strlen(msg.message));
 
 	//memset(users+id),0,sizeof(struct user));

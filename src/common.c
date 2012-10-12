@@ -59,6 +59,28 @@ int send_join_response(int client, struct join_response *req){
 
 }
 
+int send_user_list_request(int client){
+	if(send_data(client, NULL, 0, USER_LIST) < 0){
+		return -1;
+	}
+	return 0;
+}
+
+int get_user_list(int server, struct user *users){
+	struct user_list list;
+	get_data(server, &list, sizeof(struct user_list));
+	list.user_count = ntohs(list.user_count);
+
+	int index = 0;
+	while(list.user_count --> 0){
+		if(get_data(server, users+index, sizeof(struct user)) < 0){
+			perror("Failed to retrieve user list from server");
+			return -1;
+		}
+	}
+	return index;
+}
+
 int get_data(int client, void *msg, int length){
 	struct timeval tv;
 
@@ -95,6 +117,9 @@ int send_data(int client, void* data, int length, uint16_t type){
 	unsigned char buffer[BUFFER_SIZE];
 
 	struct header *header = (struct header*)buffer;
+	if(data == NULL){
+		length = 0;
+	}
 
 	int total = sizeof(struct header); //sizeof(uint16_t)*2 + len;
 	total += length;
@@ -103,7 +128,9 @@ int send_data(int client, void* data, int length, uint16_t type){
 	header->type 		= htons(type);
 	header->length 	= ntohs(length);
 
-	memcpy(buffer+sizeof(struct header), data, length);
+	if(data != NULL){
+		memcpy(buffer+sizeof(struct header), data, length);
+	}
 
 //	printf("Sending %d bytes...\n",total);
 	int total_sent = 0;
