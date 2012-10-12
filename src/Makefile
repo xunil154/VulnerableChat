@@ -1,10 +1,13 @@
 FLAGS = -g -std=gnu99
-CC = gcc $(FLAGS)
+CC = gcc $(FLAGS) 
 
-all: ../bin/server ../bin/client
+all: ../bin ../bin/server ../bin/client
 
 server: ../bin/server
 client: ../bin/client
+
+../bin:
+	if [ ! -e ../bin ]; then mkdir ../bin; fi
 
 ../bin/server: ../bin/common.o server.c
 	$(CC) -o ../bin/server ../bin/common.o server.c
