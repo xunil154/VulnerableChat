@@ -169,6 +169,27 @@ int handle_client(int client){
 		}
 				
 		break;
+		case PM:
+		{
+//			printf("Receiving message...\n");
+			struct private_message *msg = (struct private_message*)buffer;
+
+			struct message new_msg;
+			memset(&new_msg,0,sizeof(struct message));
+
+			struct user user = users[msg->from];
+
+			strcpy(new_msg.message,"[PM ");
+			strncat(new_msg.message, user.name, NAME_LEN);
+			strcat(new_msg.message, ": ");
+			strncat(new_msg.message, msg->message.message, MAX_LEN);
+			strcat(new_msg.message, " ]");
+			new_msg.length = strlen(new_msg.message);
+			new_msg.user_id = msg->from;
+
+			send_message(users[msg->to].socket, &new_msg);
+		}
+		break;
 		case USER_LIST:
 		{
 			printf("WHO command ran from client %d\n",client);
@@ -180,7 +201,7 @@ int handle_client(int client){
 				if(is_connected(users[i].socket)){
 					memcpy(buffer+index, &users[i],sizeof(struct user));
 					count++;
-					index += sizeof(struct user)*count;
+					index += sizeof(struct user);
 				}
 			}
 
@@ -190,6 +211,10 @@ int handle_client(int client){
 				perror("Failed to send user list to client");
 				return -1;
 			}
+		}
+		break;
+		case WHOIS:
+		{
 		}
 		break;
 		case COMMAND:
