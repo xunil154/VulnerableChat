@@ -90,7 +90,10 @@ int interface(struct config* config){
 
 		select(max_sock+1, &readset, NULL, NULL, &tv);
 		if(tv.tv_sec == 0 && tv.tv_usec == 0){
-			handle_user();
+			if(handle_user() != 0){
+				perror("BAD THINGS HAPPENED!");
+				EXIT = 1;
+			}
 			continue;
 		}
 
@@ -101,7 +104,8 @@ int interface(struct config* config){
 						close_interface();
 						perror("Connection closed to server");
 						return -1;
-					} }else if(i == STDIN){
+					} 
+				}else if(i == STDIN){
 					handle_user();
 				}
 			}
@@ -115,11 +119,13 @@ int handle_user(){
 	refresh();
 	int c = getch();
 	if(c == ERR){
-		return 1;
+		return 0;
 	}
 	switch(c){
 		case '\n':
-			process_user(buffer);
+			if(process_user(buffer) != 0){
+				return 1;
+			}
 			buffer_pos = 0;
 			break;
 		case KEY_F(4):
@@ -151,6 +157,7 @@ int handle_user(){
 			buffer[buffer_pos++] = (char)c;
 			wrefresh(windows[INPUT_WIN]);
 	}
+	return 0;
 
 }
 
@@ -167,12 +174,24 @@ int process_user(){
 	// TODO: add command processing
 	if(buffer[0] == '/'){
 		if(strcmp(buffer+1,"who") == 0){
-			send_user_list_request(CONFIG->self.socket);
-			return 0;
+			command = USER_LIST;
+		}
+		if(strcmp(buffer+1,"pm") == 0){
+			command = PM;
+		}
+		if(strcmp(buffer+1,"q") == 0){
+			command = -1;
+		}
+		if(strcmp(buffer+1,"quit") == 0){
+			command = -1;
 		}
 	}
 
 	switch(command){
+		case -1:
+			close_interface();
+			return -1;
+		break;
 		case 0:
 		{
 			struct message message;
@@ -183,9 +202,25 @@ int process_user(){
 			message.user_id = CONFIG->self.id;
 			send_message(CONFIG->self.socket,&message);
 		}
+		break;
+		case PM:
+		{
+			struct private_message message;
+			memset(&message,0,sizeof(struct private_message));
+			strcpy(message.message.message,buffer);
+
+			message.message.length = strlen(message.message.message);
+			message.message.user_id = CONFIG->self.id;
+			//send_pm(CONFIG->self.socket,&message);
+		}
+		break;
+		case USER_LIST:
+			send_user_list_request(CONFIG->self.socket);
+			break;
 	}
 
 	memset(buffer,0,sizeof(buffer));
+	return 0;
 }
 
 
