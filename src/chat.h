@@ -29,6 +29,8 @@
 
 #define USER_LIST 30
 #define USER_LIST_RESP 31
+#define WHOIS		32
+#define WHOIS_RESP	32
 
 // ROLES
 #define USER_G		1
@@ -53,6 +55,12 @@ struct message{
 	unsigned char message[MAX_LEN];
 }__attribute__((packed));
 
+struct private_message{
+	uint16_t to;
+	uint16_t from;
+	struct message message;
+}__attribute__((packed));
+
 struct command{
 
 }__attribute__((packed));
@@ -67,12 +75,21 @@ struct join_response{
 	uint16_t user_id;
 }__attribute__((packed));
 
+struct whois{
+	uint16_t name_len;
+	unsigned char name[NAME_LEN];
+};
+struct whois_resp{
+	uint8_t status;
+	uint16_t id;
+};
+
 
 struct user{
 	uint16_t id;
 	uint16_t groups;
-	int socket;
-	int name_length;
+	uint32_t socket;
+	uint16_t name_length;
 	unsigned char name[NAME_LEN];
 }__attribute__((packed));
 
