@@ -10,6 +10,8 @@
 #define CHAT_WIN 0
 #define INPUT_WIN 1
 
+#define HELP 1337
+
 int interface(struct config *config);
 int init_interface();
 int close_interface();

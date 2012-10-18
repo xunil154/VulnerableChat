@@ -196,6 +196,9 @@ int process_user(){
 		else if(strcmp(buffer+1,"quit") == 0){
 			command = -1;
 		}
+		else if(strcmp(buffer+1,"help") == 0){
+			command = HELP;
+		}
 	}
 
 	switch(command){
@@ -228,6 +231,34 @@ int process_user(){
 		case WHOIS:
 		{
 			send_whois_request(CONFIG->self.socket, next_arg);
+		}
+		break;
+		case HELP:
+		{
+			struct message msg;
+			msg.user_id = 65535;
+			memset(msg.message,0,sizeof(msg.message));
+			strcpy(msg.message,"[Commands: ]");
+			msg.length = strlen(msg.message);
+			add_message(&msg);
+			strcpy(msg.message,"[who	Show who is on the server]");
+			msg.length = strlen(msg.message);
+			add_message(&msg);
+			strcpy(msg.message,"[whois <usernaem>	Get details about a user]");
+			msg.length = strlen(msg.message);
+			add_message(&msg);
+			strcpy(msg.message,"[pm <username>	Send a private message to a user]");
+			msg.length = strlen(msg.message);
+			add_message(&msg);
+			/*strcpy(msg.message,"[Commands: ]");
+			msg.length = strlen(msg.message);
+			add_message(&msg);
+			strcpy(msg.message,"[Commands: ]");
+			msg.length = strlen(msg.message);
+			add_message(&msg);
+			*/
+			show_messages(windows[CHAT_WIN]);
+			wrefresh(windows[CHAT_WIN]);
 		}
 		break;
 		case USER_LIST:
