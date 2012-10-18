@@ -20,6 +20,13 @@ int is_connected(int socket);
 
 int broadcast(struct message *message);
 
+int process_join(int client, unsigned char* buffer);
+int process_message(int client, unsigned char* buffer);
+int process_pm(int client, unsigned char* buffer);
+int process_who(int client, unsigned char* buffer);
+int process_whois(int client, unsigned char* buffer);
+//int process_join(int client, unsigned char* buffer);
+
 struct user users[1024];
 int next_user_id = 0;
 

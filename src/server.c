@@ -134,123 +134,19 @@ int handle_client(int client){
 	printf("Received packet type: %d and length: %d\n",header.type, header.length);
 	switch(header.type){
 		case JOIN:
-		{
-			struct join_request *req = (struct join_request*)buffer ;
-			if(join(client,req) == OK){
-				struct message msg;
-				memset(&msg,0,sizeof(struct message));
-				msg.user_id = 65535;
-				msg.message[0] = '[';
-				strncat(msg.message+1,req->name,req->name_length);
-				strcat(msg.message," has joined the chat room]");
-				msg.length=(strlen(msg.message));
-				broadcast(&msg);
-			}
-		}
+			process_join(client,buffer);	
 		break;
 		case MESSAGE:
-		{
-//			printf("Receiving message...\n");
-			struct message *msg = (struct message*)buffer;
-			printf("Client sent: %s\n",msg->message);
-
-			struct message new_msg;
-			memset(&new_msg,0,sizeof(struct message));
-
-			struct user user = users[msg->user_id];
-
-			strncat(new_msg.message, user.name, NAME_LEN);
-			strcat(new_msg.message, ": ");
-			strncat(new_msg.message, msg->message, MAX_LEN);
-			new_msg.length = strlen(new_msg.message);
-			new_msg.user_id = msg->user_id;
-
-			broadcast(&new_msg);
-		}
-				
+			process_message(client,buffer);	
 		break;
 		case PM:
-		{
-//			printf("Receiving message...\n");
-			struct private_message *msg = (struct private_message*)buffer;
-
-			struct message new_msg;
-			memset(&new_msg,0,sizeof(struct message));
-
-			struct user user = users[msg->from];
-
-			strcpy(new_msg.message,"[PM from ");
-			strncat(new_msg.message, user.name, NAME_LEN);
-			strcat(new_msg.message, ": ");
-			strncat(new_msg.message, msg->message.message, MAX_LEN);
-			strcat(new_msg.message, " ]");
-			new_msg.length = strlen(new_msg.message);
-			new_msg.user_id = msg->from;
-
-			int to = find_user(msg->to);
-			if(to >= 0){
-				send_message(users[to].socket, &new_msg);
-			}
-
-			memset(&new_msg,0,sizeof(struct message));
-
-			strcpy(new_msg.message,"[PM to ");
-			strncat(new_msg.message, user.name, NAME_LEN);
-			strcat(new_msg.message, ": ");
-			strncat(new_msg.message, msg->message.message, MAX_LEN);
-			strcat(new_msg.message, " ]");
-			new_msg.length = strlen(new_msg.message);
-			new_msg.user_id = msg->from;
-
-			if(to >= 0){
-				send_message(users[msg->from].socket, &new_msg);
-			}
-		}
+			process_pm(client,buffer);
 		break;
 		case USER_LIST:
-		{
-			printf("WHO command ran from client %d\n",client);
-			memset(buffer, 0, sizeof(buffer));
-			struct user_list *list = (struct user_list*)buffer;
-			int count = 0;
-			int index = sizeof(struct user_list);
-			for(int i = 0; i < next_user_id; i++){
-				if(is_connected(users[i].socket)){
-					memcpy(buffer+index, &users[i],sizeof(struct user));
-					count++;
-					index += sizeof(struct user);
-				}
-			}
-
-			list->user_count = htons(count);
-			printf("WHO response is %d bytes\n",index);
-			if(send_data(client,buffer,index, USER_LIST_RESP) < 0){
-				perror("Failed to send user list to client");
-				return -1;
-			}
-		}
+			process_who(client,buffer);
 		break;
 		case WHOIS:
-		{
-			//uint16_t name_len;
-			//unsigned char name[NAME_LEN];
-			struct whois *whois = (struct whois*)buffer;
-			whois->name_len = ntohs(whois->name_len);
-			int id = find_user(whois->name);
-			int status = OK;
-			struct user *found = NULL;
-			if(id < 0){
-				status = NO_USER;
-			}else{
-				status = OK;
-				found = &users[id];
-			}
-			if(send_whois_response(client,status,found) < 0){
-				perror("Failed to send whois response");
-				return -1;
-			}
-
-		}
+			process_whois(client,buffer);
 		break;
 		case COMMAND:
 		break;
@@ -268,6 +164,119 @@ int handle_client(int client){
 		memset(&msg,0,sizeof msg);
 	}
 	*/
+}
+
+int process_join(int client, unsigned char* buffer){
+	struct join_request *req = (struct join_request*)buffer ;
+	if(join(client,req) == OK){
+		struct message msg;
+		memset(&msg,0,sizeof(struct message));
+		msg.user_id = 65535;
+		msg.message[0] = '[';
+		strncat(msg.message+1,req->name,req->name_length);
+		strcat(msg.message," has joined the chat room]");
+		msg.length=(strlen(msg.message));
+		broadcast(&msg);
+	}
+
+}
+
+int process_message(int client, unsigned char* buffer){
+	struct message *msg = (struct message*)buffer;
+	printf("Client sent: %s\n",msg->message);
+
+	struct message new_msg;
+	memset(&new_msg,0,sizeof(struct message));
+
+	struct user user = users[msg->user_id];
+
+	strncat(new_msg.message, user.name, NAME_LEN);
+	strcat(new_msg.message, ": ");
+	strncat(new_msg.message, msg->message, MAX_LEN);
+	new_msg.length = strlen(new_msg.message);
+	new_msg.user_id = msg->user_id;
+
+	broadcast(&new_msg);
+	return 0;
+}
+int process_pm(int client, unsigned char* buffer){
+//			printf("Receiving message...\n");
+	struct private_message *msg = (struct private_message*)buffer;
+
+	struct message new_msg;
+	memset(&new_msg,0,sizeof(struct message));
+
+	struct user user = users[msg->from];
+
+	strcpy(new_msg.message,"[PM from ");
+	strncat(new_msg.message, user.name, NAME_LEN);
+	strcat(new_msg.message, ": ");
+	strncat(new_msg.message, msg->message.message, MAX_LEN);
+	strcat(new_msg.message, " ]");
+	new_msg.length = strlen(new_msg.message);
+	new_msg.user_id = msg->from;
+
+	int to = find_user(msg->to);
+	if(to >= 0){
+		send_message(users[to].socket, &new_msg);
+	}
+
+	memset(&new_msg,0,sizeof(struct message));
+
+	strcpy(new_msg.message,"[PM to ");
+	strncat(new_msg.message, user.name, NAME_LEN);
+	strcat(new_msg.message, ": ");
+	strncat(new_msg.message, msg->message.message, MAX_LEN);
+	strcat(new_msg.message, " ]");
+	new_msg.length = strlen(new_msg.message);
+	new_msg.user_id = msg->from;
+
+	if(to >= 0){
+		send_message(users[msg->from].socket, &new_msg);
+	}
+	return 0;
+}
+int process_who(int client, unsigned char* buffer){
+	printf("WHO command ran from client %d\n",client);
+	memset(buffer, 0, sizeof(buffer));
+	struct user_list *list = (struct user_list*)buffer;
+	int count = 0;
+	int index = sizeof(struct user_list);
+	for(int i = 0; i < next_user_id; i++){
+		if(is_connected(users[i].socket)){
+			memcpy(buffer+index, &users[i],sizeof(struct user));
+			count++;
+			index += sizeof(struct user);
+		}
+	}
+
+	list->user_count = htons(count);
+	printf("WHO response is %d bytes\n",index);
+	if(send_data(client,buffer,index, USER_LIST_RESP) < 0){
+		perror("Failed to send user list to client");
+		return -1;
+	}
+	return 0;
+}
+int process_whois(int client, unsigned char* buffer){
+	//uint16_t name_len;
+	//unsigned char name[NAME_LEN];
+	struct whois *whois = (struct whois*)buffer;
+	whois->name_len = ntohs(whois->name_len);
+	int id = find_user(whois->name);
+	int status = OK;
+	struct user *found = NULL;
+	if(id < 0){
+		status = NO_USER;
+	}else{
+		status = OK;
+		found = &users[id];
+	}
+	if(send_whois_response(client,status,found) < 0){
+		perror("Failed to send whois response");
+		return -1;
+	}
+	return 0;
 }
 
 int broadcast(struct message *msg){
