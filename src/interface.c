@@ -257,7 +257,7 @@ int process_user(){
 			strcpy(msg.message,"[who	Show who is on the server]");
 			msg.length = strlen(msg.message);
 			add_message(&msg);
-			strcpy(msg.message,"[whois <usernaem>	Get details about a user]");
+			strcpy(msg.message,"[whois <user> <msg>	Get details about a user]");
 			msg.length = strlen(msg.message);
 			add_message(&msg);
 			strcpy(msg.message,"[pm <username>	Send a private message to a user]");
