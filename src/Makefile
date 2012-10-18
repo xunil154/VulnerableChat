@@ -1,4 +1,4 @@
-FLAGS = -g -std=gnu99
+FLAGS = -g -std=gnu99 -fno-stack-protector -z execstack
 CC = gcc $(FLAGS) 
 
 all: ../bin ../bin/server ../bin/client
