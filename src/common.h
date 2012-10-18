@@ -10,6 +10,9 @@ int send_join_request(int client, struct join_request *req);
 int send_join_response(int client, struct join_response *req);
 int send_user_list_request(int client);
 
+int send_whois_request(int client, char* user);
+int send_whois_response(int client, int status, struct user*);
+
 int send_data(int client, void* data, int length, uint16_t type);
 int get_data(int client, void *buffer, int length);
 

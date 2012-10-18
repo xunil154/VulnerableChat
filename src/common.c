@@ -66,6 +66,37 @@ int send_user_list_request(int client){
 	return 0;
 }
 
+int send_whois_request(int client, char *user){
+	struct whois request;
+	memset(&request,0,sizeof(struct whois));
+	if(user != NULL){
+		request.name_len = htons(strlen(user));
+		memcpy(&request.name,user, strlen(user));
+	}
+
+	if(send_data(client, &request, sizeof(struct whois), WHOIS) < 0){
+		return -1;
+	}
+	return 0;
+}
+
+int send_whois_response(int client, int status, struct user *user){
+	struct whois_response resp;
+	memset(&resp,0,sizeof(struct whois_response));
+	if(status == OK){
+		memcpy(&resp.user,user,sizeof(struct user));
+		resp.user.id 	 = htons(resp.user.id);
+		resp.user.groups = htons(resp.user.groups);
+		resp.user.socket = 0;
+		resp.user.name_length = htons(resp.user.name_length);
+	}
+
+	if(send_data(client, &resp, sizeof(struct whois_response), WHOIS_RESP) < 0){
+		return -1;
+	}
+	return 0;
+}
+
 
 int get_data(int client, void *msg, int length){
 	struct timeval tv;
@@ -118,7 +149,7 @@ int send_data(int client, void* data, int length, uint16_t type){
 		memcpy(buffer+sizeof(struct header), data, length);
 	}
 
-//	printf("Sending %d bytes...\n",total);
+	fprintf(stderr,"Sending %d bytes...\n",total);
 	int total_sent = 0;
 	do{
 		int sent = send(client, buffer+total_sent, total-total_sent,0);

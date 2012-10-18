@@ -164,25 +164,36 @@ int handle_user(){
 int process_user(){
 	int buffer_len = strlen(buffer);
 	int command = 0;
+	unsigned char* next_arg = buffer;
 
 	print_prompt(windows[INPUT_WIN]);
 
 	if(buffer_len == 0){
-		return -1;
+		return 0;
 	}
 
 	// TODO: add command processing
 	if(buffer[0] == '/'){
+		next_arg = strchr(buffer,' ');
+		if(next_arg){
+			fprintf(stderr,"space at:%d\n",next_arg-buffer);
+			*next_arg = 0; // null terminate the command
+			next_arg++;
+		}
+
 		if(strcmp(buffer+1,"who") == 0){
 			command = USER_LIST;
 		}
-		if(strcmp(buffer+1,"pm") == 0){
+		else if(strcmp(buffer+1,"pm") == 0){
 			command = PM;
 		}
-		if(strcmp(buffer+1,"q") == 0){
+		else if(strcmp(buffer+1,"whois") == 0){
+			command = WHOIS;
+		}
+		else if(strcmp(buffer+1,"q") == 0){
 			command = -1;
 		}
-		if(strcmp(buffer+1,"quit") == 0){
+		else if(strcmp(buffer+1,"quit") == 0){
 			command = -1;
 		}
 	}
@@ -212,6 +223,11 @@ int process_user(){
 			message.message.length = strlen(message.message.message);
 			message.message.user_id = CONFIG->self.id;
 			//send_pm(CONFIG->self.socket,&message);
+		}
+		break;
+		case WHOIS:
+		{
+			send_whois_request(CONFIG->self.socket, next_arg);
 		}
 		break;
 		case USER_LIST:
@@ -292,6 +308,50 @@ int handle_server(int server_socket){
 				msg.length = strlen(msg.message);
 				add_message(&msg);
 			}
+			show_messages(windows[CHAT_WIN]);
+			wrefresh(windows[CHAT_WIN]);
+		}
+		break;
+		case WHOIS:
+		{
+			struct message msg;
+			msg.user_id = 65535;
+			memset(msg.message,0,sizeof(msg.message));
+			strcpy(msg.message,"[server: WHOIS]");
+			msg.length = strlen(msg.message);
+
+			add_message(&msg);
+
+			struct whois_response *who = (struct whois_response*)buffer;
+			who->status = ntohs(who->status);
+			switch(who->status){
+				case OK:
+				{
+					strcpy(msg.message,"[name: ");
+					strcat(msg.message,who->user.name);
+					strcat(msg.message,"]");
+					msg.length = strlen(msg.message);
+					add_message(&msg);
+					strcpy(msg.message,"[id: ");
+					sprintf(msg.message+strlen(msg.message),"%d",ntohs(who->user.id));
+					//strcat(msg.message,ntohs(who->user.id));
+					strcat(msg.message,"]");
+					msg.length = strlen(msg.message);
+					add_message(&msg);
+				}
+				break;
+				case NO_USER:
+				{
+					strcpy(msg.message,"[server: User not found]");
+					msg.length = strlen(msg.message);
+					add_message(&msg);
+				}
+				break;
+
+				default:
+				break;
+			}
+
 			show_messages(windows[CHAT_WIN]);
 			wrefresh(windows[CHAT_WIN]);
 		}

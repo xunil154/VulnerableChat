@@ -43,6 +43,11 @@
 #define USED 	1
 #define INVALID 2
 
+// WHOIS CODES
+#define OK 0
+#define NO_USER 1
+#define NO_PERMISSIONS 2
+
 struct header{
 	uint16_t version;
 	uint16_t type;
@@ -75,15 +80,6 @@ struct join_response{
 	uint16_t user_id;
 }__attribute__((packed));
 
-struct whois{
-	uint16_t name_len;
-	unsigned char name[NAME_LEN];
-};
-struct whois_resp{
-	uint8_t status;
-	uint16_t id;
-};
-
 
 struct user{
 	uint16_t id;
@@ -96,5 +92,15 @@ struct user{
 struct user_list{
 	uint16_t user_count;
 }__attribute__((packed));
+
+struct whois{
+	uint16_t name_len;
+	unsigned char name[NAME_LEN];
+};
+
+struct whois_response{
+	uint8_t status;
+	struct user user;
+};
 
 #endif

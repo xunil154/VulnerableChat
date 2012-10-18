@@ -215,6 +215,24 @@ int handle_client(int client){
 		break;
 		case WHOIS:
 		{
+			//uint16_t name_len;
+			//unsigned char name[NAME_LEN];
+			struct whois *whois = (struct whois*)buffer;
+			whois->name_len = ntohs(whois->name_len);
+			int id = find_user(whois->name);
+			int status = OK;
+			struct user *found = NULL;
+			if(id < 0){
+				status = NO_USER;
+			}else{
+				status = OK;
+				found = &users[id];
+			}
+			if(send_whois_response(client,status,found) < 0){
+				perror("Failed to send whois response");
+				return -1;
+			}
+
 		}
 		break;
 		case COMMAND:
