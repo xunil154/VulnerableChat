@@ -179,7 +179,7 @@ int handle_client(int client){
 
 			struct user user = users[msg->from];
 
-			strcpy(new_msg.message,"[PM ");
+			strcpy(new_msg.message,"[PM from ");
 			strncat(new_msg.message, user.name, NAME_LEN);
 			strcat(new_msg.message, ": ");
 			strncat(new_msg.message, msg->message.message, MAX_LEN);
@@ -187,7 +187,24 @@ int handle_client(int client){
 			new_msg.length = strlen(new_msg.message);
 			new_msg.user_id = msg->from;
 
-			send_message(users[msg->to].socket, &new_msg);
+			int to = find_user(msg->to);
+			if(to >= 0){
+				send_message(users[to].socket, &new_msg);
+			}
+
+			memset(&new_msg,0,sizeof(struct message));
+
+			strcpy(new_msg.message,"[PM to ");
+			strncat(new_msg.message, user.name, NAME_LEN);
+			strcat(new_msg.message, ": ");
+			strncat(new_msg.message, msg->message.message, MAX_LEN);
+			strcat(new_msg.message, " ]");
+			new_msg.length = strlen(new_msg.message);
+			new_msg.user_id = msg->from;
+
+			if(to >= 0){
+				send_message(users[msg->from].socket, &new_msg);
+			}
 		}
 		break;
 		case USER_LIST:

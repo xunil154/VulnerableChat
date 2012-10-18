@@ -97,6 +97,12 @@ int send_whois_response(int client, int status, struct user *user){
 	return 0;
 }
 
+int send_pm(int client, struct private_message *msg){
+	if(send_data(client, msg, sizeof(struct private_message), PM) < 0){
+		return -1;
+	}
+	return 0;
+}
 
 int get_data(int client, void *msg, int length){
 	struct timeval tv;

@@ -176,7 +176,6 @@ int process_user(){
 	if(buffer[0] == '/'){
 		next_arg = strchr(buffer,' ');
 		if(next_arg){
-			fprintf(stderr,"space at:%d\n",next_arg-buffer);
 			*next_arg = 0; // null terminate the command
 			next_arg++;
 		}
@@ -219,19 +218,31 @@ int process_user(){
 		break;
 		case PM:
 		{
+			unsigned char* to = next_arg;
+			next_arg = strchr(next_arg,' ');
+			if(next_arg){
+				*next_arg = 0; // null terminate the command
+				next_arg++;
+			}
+
 			struct private_message message;
 			memset(&message,0,sizeof(struct private_message));
-			strcpy(message.message.message,buffer);
+			strcpy(message.to, to);
+			strcpy(message.message.message,next_arg);
 
 			message.message.length = strlen(message.message.message);
 			message.message.user_id = CONFIG->self.id;
-			//send_pm(CONFIG->self.socket,&message);
+			message.from = CONFIG->self.id;
+			send_pm(CONFIG->self.socket,&message);
 		}
 		break;
 		case WHOIS:
 		{
 			send_whois_request(CONFIG->self.socket, next_arg);
 		}
+		break;
+		case USER_LIST:
+			send_user_list_request(CONFIG->self.socket);
 		break;
 		case HELP:
 		{
@@ -261,9 +272,6 @@ int process_user(){
 			wrefresh(windows[CHAT_WIN]);
 		}
 		break;
-		case USER_LIST:
-			send_user_list_request(CONFIG->self.socket);
-			break;
 	}
 
 	memset(buffer,0,sizeof(buffer));
@@ -385,6 +393,11 @@ int handle_server(int server_socket){
 
 			show_messages(windows[CHAT_WIN]);
 			wrefresh(windows[CHAT_WIN]);
+		}
+		break;
+		case PM:
+		{
+			struct private_message *pm = (struct private_message*)buffer;
 		}
 		break;
 		default:

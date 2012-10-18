@@ -61,8 +61,8 @@ struct message{
 }__attribute__((packed));
 
 struct private_message{
-	uint16_t to;
 	uint16_t from;
+	unsigned char to[NAME_LEN];
 	struct message message;
 }__attribute__((packed));
 
