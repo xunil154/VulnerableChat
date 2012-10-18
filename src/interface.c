@@ -223,6 +223,8 @@ int process_user(){
 			if(next_arg){
 				*next_arg = 0; // null terminate the command
 				next_arg++;
+			}else{
+				return 0;
 			}
 
 			struct private_message message;
@@ -395,10 +397,6 @@ int handle_server(int server_socket){
 			wrefresh(windows[CHAT_WIN]);
 		}
 		break;
-		case PM:
-		{
-			struct private_message *pm = (struct private_message*)buffer;
-		}
 		break;
 		default:
 			printf("Unknown command type: %d\nDisconnecting client\n",header.type);
