@@ -151,10 +151,17 @@ int handle_user(){
 		case KEY_RIGHT:
 			break;
 		case KEY_BACKSPACE:
+		case KEY_DC:
+			buffer[buffer_pos] == 0;
+			buffer_pos --;
+			buffer[buffer_pos] == 0;
+			//wrefresh(windows[INPUT_WIN]);
 			break;
 		default:
-			wprintw(windows[INPUT_WIN],"%c",(char)c);
 			buffer[buffer_pos++] = (char)c;
+			//werase(windows[INPUT_WIN]);
+			//wprintw(windows[INPUT_WIN],"%s",buffer);
+			wprintw(windows[INPUT_WIN],"%c",c);
 			wrefresh(windows[INPUT_WIN]);
 	}
 	return 0;

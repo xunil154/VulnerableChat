@@ -110,7 +110,7 @@ int get_data(int client, void *msg, int length){
 
 	setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
 
-	fprintf(stderr,"Reading %d bytes\n", length);
+	//fprintf(stderr,"Reading %d bytes\n", length);
 
 	// read the message from the client
 	// This is a multi part read in case not all of the data was sent
@@ -155,7 +155,7 @@ int send_data(int client, void* data, int length, uint16_t type){
 		memcpy(buffer+sizeof(struct header), data, length);
 	}
 
-	fprintf(stderr,"Sending %d bytes...\n",total);
+	//fprintf(stderr,"Sending %d bytes...\n",total);
 	int total_sent = 0;
 	do{
 		int sent = send(client, buffer+total_sent, total-total_sent,0);
