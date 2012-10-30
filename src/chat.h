@@ -96,11 +96,11 @@ struct user_list{
 struct whois{
 	uint16_t name_len;
 	unsigned char name[NAME_LEN];
-};
+}__attribute__((packed));
 
 struct whois_response{
 	uint8_t status;
 	struct user user;
-};
+}__attribute__((packed));
 
 #endif
