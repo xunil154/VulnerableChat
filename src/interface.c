@@ -152,16 +152,38 @@ int handle_user(){
 			break;
 		case KEY_BACKSPACE:
 		case KEY_DC:
-			buffer[buffer_pos] == 0;
+			buffer[buffer_pos] = 0;
 			buffer_pos --;
-			buffer[buffer_pos] == 0;
-			//wrefresh(windows[INPUT_WIN]);
+			if(buffer_pos < 0){
+				buffer_pos = 0;
+			}
+			buffer[buffer_pos] = 0;
+			{
+				char spaces[BUFFER_SIZE];
+				memset(spaces,' ',sizeof(spaces)-1);
+				wprintw(windows[INPUT_WIN],"%s",buffer);
+			}
+			destroy_win(windows[INPUT_WIN]);
+			windows[INPUT_WIN] = create_newwin(4, COLS, LINES-4, 0);
+			print_prompt(windows[INPUT_WIN]);
+
+			wprintw(windows[INPUT_WIN],"%s",buffer);
+			wrefresh(windows[INPUT_WIN]);
 			break;
 		default:
 			buffer[buffer_pos++] = (char)c;
 			//werase(windows[INPUT_WIN]);
 			//wprintw(windows[INPUT_WIN],"%s",buffer);
-			wprintw(windows[INPUT_WIN],"%c",c);
+			{
+				char spaces[BUFFER_SIZE];
+				memset(spaces,' ',sizeof(spaces)-1);
+				wprintw(windows[INPUT_WIN],"%s",buffer);
+			}
+			destroy_win(windows[INPUT_WIN]);
+			windows[INPUT_WIN] = create_newwin(4, COLS, LINES-4, 0);
+			print_prompt(windows[INPUT_WIN]);
+
+			wprintw(windows[INPUT_WIN],"%s",buffer);
 			wrefresh(windows[INPUT_WIN]);
 	}
 	return 0;
