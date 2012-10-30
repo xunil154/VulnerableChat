@@ -9,6 +9,14 @@
 #include <unistd.h>
 #include <time.h>
 
+/**
+ * Start a socket listening on a given port
+ * Arguments:
+ *	port: the port to listen on
+ * Returns:
+ *	the socket on success
+ *  0 on failure
+ */
 int start_listening(int port){
 	struct addrinfo hints, *res;
 	int sock;
@@ -54,34 +62,50 @@ int start_listening(int port){
 	return sock;
 }
 
+/**
+ * Start the server on a given port. This function never exits
+ * Arguments:
+ *	port: the port to listen on
+ * Return:
+ *	nothing
+ */
 int run_server(int port){
 	struct message *msg= NULL;
+	// use select for server processing
 	fd_set readfds;
 	fd_set master;
 
+	// Get our socket
 	int sock = start_listening(port);
 	int max_sock = sock;
 
 	printf("Waiting for a connection on port %d\n",port);
 
+	// setup select
 	FD_ZERO(&readfds);
 	FD_ZERO(&master);
 	FD_SET(sock, &master);
 
-	while(1){
+	// The main server
+	while("false"){
 		struct timeval tv;
+		// 2 second timeout
 		tv.tv_sec = 2;
 		tv.tv_usec = 500000;
 
+		// copy master since select modifies our list
 		readfds = master;
 
 		// don't care about writefds and exceptfds:
 		select(max_sock+1, &readfds, NULL, NULL, &tv);
 
+		// if we timed out do it again
 		if(tv.tv_sec == 0){ continue; }
 
+		// Something happened! iterate over sockets and find which one has data
 		for(int i = 0; i < max_sock+1; ++i){
 			if (FD_ISSET(i, &readfds)){
+				// if something happend on the listen socket, accept the client
 				if(i == sock){
 					struct sockaddr_storage client_addr;
 					socklen_t addr_size = sizeof client_addr;
@@ -95,7 +119,7 @@ int run_server(int port){
 					printf("Client connected\n");
 					if(client > max_sock) max_sock = client;
 					FD_SET(client,&master);
-				}else{
+				}else{ // otherwise handle the client
 					if(handle_client(i) < 0){
 						FD_CLR(i, &master);
 					}
@@ -103,6 +127,7 @@ int run_server(int port){
 			}
 		}
 	}
+	return 0;
 }
 
 int is_connected(int socket){
@@ -110,6 +135,11 @@ int is_connected(int socket){
 	return 1;
 }
 
+/**
+ * Process data from the client
+ * Arguments:
+ *	client: The client socket to read data from
+ */
 int handle_client(int client){
 	unsigned char buffer[BUFFER_SIZE];
 	memset(buffer,0,sizeof(buffer));
@@ -155,17 +185,13 @@ int handle_client(int client){
 			close(client);
 	}
 
-	/*while(get_message(client, &msg) >= 0){
-		printf("Friend: %s\n",msg.message);
-		printf("You: ");
-
-		memset(&msg,0, sizeof msg);
-		send_message(client, &msg);
-		memset(&msg,0,sizeof msg);
-	}
-	*/
 }
 
+/**
+ * Process the join request
+ * If the join is succesful then it will broadcast
+ *	[<username> has joined the chat room]
+ */
 int process_join(int client, unsigned char* buffer){
 	struct join_request *req = (struct join_request*)buffer ;
 	if(join(client,req) == OK){
@@ -181,6 +207,12 @@ int process_join(int client, unsigned char* buffer){
 
 }
 
+/**
+ * Process a general message
+ * It will read the message from a user, reformat the string as
+ *  <usernam>: <message
+ * and broadcast to all connected users
+ */
 int process_message(int client, unsigned char* buffer){
 	struct message *msg = (struct message*)buffer;
 	printf("Client sent: %s\n",msg->message);
@@ -199,6 +231,14 @@ int process_message(int client, unsigned char* buffer){
 	broadcast(&new_msg);
 	return 0;
 }
+
+/**
+ * Processes a PM message from a user
+ * Receives the PM message, looks up the username of the sender
+ * and build a message with the format
+ *	[PM from <username>: <message>]
+ * and then sends this message to the intended recepiant
+ */
 int process_pm(int client, unsigned char* buffer){
 //			printf("Receiving message...\n");
 	struct private_message *msg = (struct private_message*)buffer;
@@ -236,6 +276,12 @@ int process_pm(int client, unsigned char* buffer){
 	}
 	return 0;
 }
+
+/**
+ * Process a WHO request
+ * It will find all of the users who are connected and send thir user information
+ * to the requesting client
+ */
 int process_who(int client, unsigned char* buffer){
 	printf("WHO command ran from client %d\n",client);
 	memset(buffer, 0, sizeof(buffer));
@@ -258,6 +304,13 @@ int process_who(int client, unsigned char* buffer){
 	}
 	return 0;
 }
+/**
+ * Process WHOIS request
+ * It will lookup the username of the requested user and
+ * send back the user data to the requesting client.
+ * If a user does not exist it will send NO_USER as the
+ * status.
+ */
 int process_whois(int client, unsigned char* buffer){
 	//uint16_t name_len;
 	//unsigned char name[NAME_LEN];
@@ -279,6 +332,11 @@ int process_whois(int client, unsigned char* buffer){
 	return 0;
 }
 
+/**
+ * This will broadcast a message to all users connected to the server
+ * Arguments:
+ *	msg: the message to send
+ */
 int broadcast(struct message *msg){
 	for(int i = 0; i < next_user_id; i++){
 		struct user other_user = users[i];
@@ -293,6 +351,11 @@ int broadcast(struct message *msg){
 	}
 }
 
+/**
+ * Process a join request from a client.
+ * It will setup the user information in the users table
+ * as well as send the response codes to the client
+ */
 int join(int client, struct join_request *req){
 	printf("Trying to register new user %s\n",req->name);
 
@@ -314,14 +377,6 @@ int join(int client, struct join_request *req){
 		return -1;
 	}
 
-/*struct user{
-	uint16_t id;
-	uint16_t groups;
-	int socket;
-	int name_length;
-	unsigned char name[NAME_LEN];
-}__attribute__((packed));
-*/
 	struct user *user = &(users[id]);
 
 	user->id = id;

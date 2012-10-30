@@ -8,6 +8,12 @@
 #include <string.h>
 #include <unistd.h>
 
+/**
+ * Connect to the server on a given address and port
+ * 	server: The server to connect to
+ * 	port: the service to connect on
+ * Returns a socket connected to the server, -1 on failure
+ */
 int server_connect(char* server, char* port){
 	struct addrinfo hints, *res;
 	int sockfd;
@@ -35,7 +41,7 @@ int server_connect(char* server, char* port){
 	}	
 	struct timeval tv;
 
-	tv.tv_sec = 2;  /* 30 Secs Timeout */
+	tv.tv_sec = 2;  /* 2 Secs Timeout */
 	tv.tv_usec = 0;  // Not init'ing this can cause strange errors
 
 	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
@@ -43,17 +49,28 @@ int server_connect(char* server, char* port){
 	return sockfd;
 }
 
+/**
+ * Start the client chat program
+ * It connects to the server and starts up the curses interface
+ * Arguments:
+ *	username: The desired username
+ *	server: The server to connect to
+ *	port: The port to connect on
+ */
 int client(char* username, char* server, char* port){
+	// Connect to the server
 	int socket = server_connect(server,port);
 	if(socket <= 0){
 		printf("An error occured connecting, try again\n");
 		exit(1);
 	}
 
+	// Load info into our runtime configuration 
 	config.self.socket = socket;
 	strncpy(config.self.name,username,strlen(username));
 	config.self.name_length = strlen(username);
 
+	// Register ourselves with the server
 	int response = register_username(username);
 	if( response < 0){
 		if(response == -1){
@@ -71,16 +88,31 @@ int client(char* username, char* server, char* port){
 		config.self.id = response;
 	}
 
+	// Start the chat interfac
 	interface(&config);
 
 	return 0;
 }
 
 // Returns 0 on success, -1 on send failure, -2 if username is already registered
+/**
+ * Register our username with the server. This will grant us a slot
+ * on the server as well as validate our username
+ * Arguments:
+ *	username: our desired username
+ * Returns:
+ *  Our new user id on success
+ * 	-1 on network error
+ *  -2 if our username is already used
+ *  -3 if our username is invalid
+ *  -4 on all other errors
+ */
 int register_username(char* username){
 	if(username == NULL || config.self.socket <= 0){
-		return -3;
+		return -4;
 	}
+
+	// Build up our request message
 	struct join_request req;
 	memset(&req,0,sizeof(struct join_request));
 	int len = strlen(username);
@@ -93,6 +125,7 @@ int register_username(char* username){
 		return -1;
 	}
 
+	// Retrieve the response
 	struct header header;
 	memset(&header,0,sizeof(header));
 
@@ -101,11 +134,13 @@ int register_username(char* username){
 		return -1;
 	}
 
+	// sanity check
 	if(header.type != JOIN_RESP){
 		printf("Invalid return type from server\n");
 		return -1;
 	}
 
+	// receive the full response message
 	struct join_response response;
 	memset(&response,0,sizeof(struct join_response));
 
@@ -113,6 +148,7 @@ int register_username(char* username){
 		printf("Failed to get response from server\n");
 		return -1;
 	}
+
 	switch(response.status){
 		case OK:
 			return response.user_id;
@@ -142,5 +178,4 @@ int main(int argc, char** argv){
 	}
 
 	client(argv[1],argv[2],argv[3]);
-
 }

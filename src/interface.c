@@ -31,6 +31,10 @@ int close_interface(){
 	close(CONFIG->self.socket);
 }
 
+/**
+ * Initialize curses
+ * It will create two windows, a chat window and an input window
+ */
 int init_interface(){
 	signal(SIGINT, signal_handler);
 	//signal(SIGQUIT, quitproc);
@@ -57,6 +61,9 @@ int init_interface(){
 
 }
 
+/**
+ * Print a prompt in the input window
+ */
 void print_prompt(WINDOW *win){
 	wclear(win);
 	box(win, 0 , 0);
@@ -66,6 +73,9 @@ void print_prompt(WINDOW *win){
 	wrefresh(win);
 }
 
+/**
+ * Start the interface and main client loop
+ */
 int interface(struct config* config){
 	CONFIG = config;
 
@@ -115,6 +125,12 @@ int interface(struct config* config){
 	return 0;
 }
 
+/**
+ * Process user input
+ * This function only looks at a single character typed at a time.
+ * Once it sees a newline character it will then call process_user
+ * to process the user input
+ */
 int handle_user(){
 	refresh();
 	int c = getch();
@@ -152,17 +168,16 @@ int handle_user(){
 			break;
 		case KEY_BACKSPACE:
 		case KEY_DC:
+			// delete the current character
 			buffer[buffer_pos] = 0;
 			buffer_pos --;
+			// sanity check
 			if(buffer_pos < 0){
 				buffer_pos = 0;
 			}
 			buffer[buffer_pos] = 0;
-			{
-				char spaces[BUFFER_SIZE];
-				memset(spaces,' ',sizeof(spaces)-1);
-				wprintw(windows[INPUT_WIN],"%s",buffer);
-			}
+
+			// ugly hack to clear the line, we rebuild the window >.<
 			destroy_win(windows[INPUT_WIN]);
 			windows[INPUT_WIN] = create_newwin(4, COLS, LINES-4, 0);
 			print_prompt(windows[INPUT_WIN]);
@@ -172,24 +187,18 @@ int handle_user(){
 			break;
 		default:
 			buffer[buffer_pos++] = (char)c;
-			//werase(windows[INPUT_WIN]);
-			//wprintw(windows[INPUT_WIN],"%s",buffer);
-			{
-				char spaces[BUFFER_SIZE];
-				memset(spaces,' ',sizeof(spaces)-1);
-				wprintw(windows[INPUT_WIN],"%s",buffer);
-			}
-			destroy_win(windows[INPUT_WIN]);
-			windows[INPUT_WIN] = create_newwin(4, COLS, LINES-4, 0);
-			print_prompt(windows[INPUT_WIN]);
 
-			wprintw(windows[INPUT_WIN],"%s",buffer);
+			wprintw(windows[INPUT_WIN],"%c",c);
 			wrefresh(windows[INPUT_WIN]);
 	}
 	return 0;
 
 }
 
+/**
+ * Process the user input
+ * It handles building commands to the server as well as just sending messages
+ */
 int process_user(){
 	int buffer_len = strlen(buffer);
 	int command = 0;
@@ -310,6 +319,9 @@ int process_user(){
 }
 
 
+/**
+ * Process data from the server
+ */
 int handle_server(int server_socket){
 	char buffer[BUFFER_SIZE];
 	memset(buffer,0,sizeof(buffer));
@@ -321,18 +333,12 @@ int handle_server(int server_socket){
 		return -1;
 	}
 
-#ifdef DEBUG
-	printf("Getting server data of length: %d\n",header.length);
-#endif
 	if(get_data(server_socket, &buffer, (header.length)) < 0){
 		printf("Could not retrieve server's data\n");
 		close(server_socket);
 		return -1;
 	}
 
-#ifdef DEBUG
-	printf("Received packet type: %d and length: %d\n",header.type, header.length);
-#endif
 	switch(header.type){
 		case JOIN_RESP:
 			perror("We should have already received our join response.... strange hapenings\n");
